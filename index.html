@@ -15,7 +15,6 @@
 }
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
 
-
 /* ── Upload ── */
 #upload-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
 .upload-card{background:var(--card);border:2px dashed var(--border);border-radius:16px;padding:3rem 2.5rem;text-align:center;max-width:480px;width:100%;transition:border-color .2s}
@@ -40,9 +39,8 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 #dashboard.show{display:block}
 
 /* ── Header ── */
-header{background:var(--card);border-bottom:1px solid var(--border);padding:.7rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;gap:1rem}
-.hd-left{display:flex;align-items:center;gap:.55rem}
-.hd-icon{font-size:1.05rem;opacity:.85}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:.7rem 1.5rem;display:flex;align-items:center;position:sticky;top:0;z-index:100;gap:1rem}
+.hd-left{display:flex;align-items:center;gap:.55rem;flex:1}
 header h1{font-size:17px;font-weight:700;color:#fff}
 header h1 .dot{color:var(--primary);margin:0 .3rem;font-weight:300}
 .hd-right{display:flex;align-items:center;gap:1.1rem;flex-shrink:0}
@@ -158,7 +156,6 @@ tr:hover td{background:rgba(99,102,241,.04)}
   </nav>
 
   <main>
-    <!-- Visão Geral -->
     <div class="panel" id="p-vg-overview">
       <div class="kpi-grid">
         <div class="kpi-card"><div class="kpi-label">Total de Ocorrências</div><div class="kpi-value c-primary" id="kpi-total">—</div><div class="kpi-sub" id="kpi-periodo">—</div></div>
@@ -207,7 +204,6 @@ tr:hover td{background:rgba(99,102,241,.04)}
       <div class="empty-state"><div class="e-icon">📂</div><h3>Nenhum arquivo carregado</h3><p>Faça o upload de um arquivo .xlsx para visualizar a análise da importação atual.</p><button class="btn-primary" onclick="document.getElementById('fi').click()">Fazer Upload</button></div>
     </div>
 
-    <!-- Histórico -->
     <div class="panel" id="p-hist">
       <div class="chart-card">
         <div class="hist-toolbar">
@@ -234,18 +230,14 @@ tr:hover td{background:rgba(99,102,241,.04)}
 </div>
 
 <script>
-// ════════════════════════════════════════════════
-//  ⚙️  CONFIGURAÇÃO — cole aqui a URL do deploy
-// ════════════════════════════════════════════════
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbybIxU_4cRpt7qovL3exZoYB1q36YPglcsF9zccGlm2qnDumYi4hEfNfxjK-1qgFuKyXw/exec';
 
 const DIAS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const charts = {};
-let cur = null;       // dados do upload atual
-let histData = null;  // { headers, rows } vindos do Sheets
+let cur = null;
+let histData = null;
 let nav = { p:'hist', s:'overview' };
 
-// ── Init ─────────────────────────────────────────
 window.addEventListener('load', async () => {
   showOverlay('Buscando histórico...');
   histData = await fetchHistory();
@@ -258,7 +250,6 @@ window.addEventListener('load', async () => {
   }
 });
 
-// ── Drag & drop ───────────────────────────────────
 const dz = document.getElementById('drop-zone');
 dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
 dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
@@ -269,7 +260,6 @@ function showDashboard() {
   document.getElementById('dashboard').classList.add('show');
 }
 
-// ── File handling ─────────────────────────────────
 async function handleFile(file) {
   if (!file) return;
   showOverlay('Lendo ' + file.name + '...');
@@ -296,7 +286,6 @@ async function handleFile(file) {
   hideOverlay();
 }
 
-// ── Data processing ───────────────────────────────
 function parseDate(v) {
   if (!v) return null;
   if (v instanceof Date) return isNaN(v)?null:v;
@@ -331,7 +320,6 @@ function process(rawRows) {
   return { total:data.length, promotores, byDay, sortedDays, byHour, byDow, minD, maxD, picoDia };
 }
 
-// ── Render Visão Geral ────────────────────────────
 function renderVG(d) {
   const top=d.promotores[0];
   const [,pm,pday]=(d.picoDia||'').split('-');
@@ -362,7 +350,6 @@ function renderVG(d) {
   mkChart('chart-semana',{type:'bar',data:{labels:DIAS,datasets:[{label:'Ocorrências',data:d.byDow,backgroundColor:d.byDow.map(v=>v===maxDow?'rgba(245,158,11,.85)':'rgba(167,139,250,.7)'),borderColor:d.byDow.map(v=>v===maxDow?'#f59e0b':'#a78bfa'),borderWidth:1,borderRadius:3}]},options:baseOpts()});
 }
 
-// ── Render Histórico ──────────────────────────────
 function renderHist() {
   if (!histData) { showPanel('p-hist-error'); return; }
   if (!histData.rows || histData.rows.length === 0) { showPanel('p-hist-empty'); return; }
@@ -379,19 +366,18 @@ function buildHistFilter() {
     sel.innerHTML += `<option value="${v}">últimas ${v}</option>`;
   });
   sel.innerHTML += `<option value="9999">todas (${n})</option>`;
-  sel.value = n <= 3 ? '9999' : n <= 5 ? '9999' : '5';
+  sel.value = n <= 5 ? '9999' : '5';
 }
 
 function updateHistChart() {
   if (!histData) return;
   const filterVal = parseInt(document.getElementById('hist-filter').value);
   const allRows = histData.rows;
-  const headers = histData.headers; // ["arquivo", "2026-03-01", ...]
+  const headers = histData.headers;
   const dateHeaders = headers.slice(1).map(String);
   const visRows = allRows.slice(-filterVal);
   const n = visRows.length;
 
-  // X labels: dd/mm
   const labels = dateHeaders.map(d => {
     const parts = d.split('-');
     return parts.length === 3 ? `${parts[2]}/${parts[1]}` : d;
@@ -441,24 +427,18 @@ function updateHistChart() {
   });
 }
 
-// ── Navigation ────────────────────────────────────
-const VG_SECONDARY = ['overview','promotor','hora','semana'];
-
 function navigate(p, s) {
   if (p) { nav.p = p; if (!s) nav.s = 'overview'; }
   if (s) nav.s = s;
 
-  // Primary
   document.querySelectorAll('#nav-primary .nav-tab').forEach(b => b.classList.toggle('active', b.dataset.p===nav.p));
 
-  // Secondary nav visibility
   const secNav = document.getElementById('nav-secondary');
   secNav.classList.toggle('hidden', nav.p==='hist');
   if (nav.p==='vg') {
     document.querySelectorAll('#nav-secondary .nav-tab').forEach(b => b.classList.toggle('active', b.dataset.s===nav.s));
   }
 
-  // Panels
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   if (nav.p === 'hist') {
     renderHist();
@@ -472,13 +452,11 @@ function showPanel(id) { document.querySelectorAll('.panel').forEach(p=>p.classL
 document.querySelectorAll('#nav-primary .nav-tab').forEach(b => b.addEventListener('click', ()=>navigate(b.dataset.p)));
 document.querySelectorAll('#nav-secondary .nav-tab').forEach(b => b.addEventListener('click', ()=>navigate(null, b.dataset.s)));
 
-// ── Google Sheets API ─────────────────────────────
 async function fetchHistory() {
   if (!SCRIPT_URL) return null;
   try {
     const resp = await fetch(SCRIPT_URL + '?t=' + Date.now());
-    const json = await resp.json();
-    return json;
+    return await resp.json();
   } catch(e) { console.error('fetchHistory:', e); return null; }
 }
 
@@ -490,7 +468,6 @@ async function postHistory(filename, byDay) {
   } catch(e) { toast('Erro ao salvar histórico', 'err'); console.error(e); }
 }
 
-// ── Helpers ───────────────────────────────────────
 function mkChart(id, cfg) {
   if (charts[id]) charts[id].destroy();
   const el = document.getElementById(id);
