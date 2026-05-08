@@ -208,6 +208,7 @@ tr:hover td{background:rgba(99,102,241,.04)}
         <div class="kpi-card"><div class="kpi-label">Promotores Rastreados</div><div class="kpi-value c-info" id="hp-total-proms">—</div><div class="kpi-sub" id="hp-periodo">—</div></div>
         <div class="kpi-card"><div class="kpi-label">Total Acumulado</div><div class="kpi-value c-primary" id="hp-total-fotos">—</div><div class="kpi-sub">fotos perdidas</div></div>
         <div class="kpi-card"><div class="kpi-label">Mais Recorrente</div><div class="kpi-value c-danger" id="hp-top-imports">—</div><div class="kpi-sub" id="hp-top-nome">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Mais Fotos Perdidas</div><div class="kpi-value c-alert" id="hp-top-fotos">—</div><div class="kpi-sub" id="hp-top-fotos-nome">—</div></div>
       </div>
       <div class="chart-card">
         <div class="hist-toolbar">
@@ -438,6 +439,9 @@ function renderHistProms() {
   document.getElementById('hp-total-fotos').textContent = totalFotos.toLocaleString('pt-BR');
   document.getElementById('hp-top-imports').textContent = topRec ? `${topRec.imports}x` : '—';
   document.getElementById('hp-top-nome').textContent = topRec ? topRec.nome : '—';
+  const topFotos = allProms[0];
+  document.getElementById('hp-top-fotos').textContent = topFotos ? topFotos.total.toLocaleString('pt-BR') : '—';
+  document.getElementById('hp-top-fotos-nome').textContent = topFotos ? topFotos.nome : '—';
 
   // Guarda para o filtro
   window._allProms = allProms;
