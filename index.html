@@ -76,6 +76,9 @@ tr:hover td{background:rgba(99,102,241,.04)}
 .mini-bar-wrap{display:flex;align-items:center;gap:.5rem}
 .mini-bar{flex:1;height:5px;background:var(--border);border-radius:3px;min-width:60px}
 .mini-bar-fill{height:100%;border-radius:3px}
+.pivot-table th.pvt-name-hdr,.pivot-table td.pvt-name{position:sticky;left:0;background:var(--card);z-index:1;min-width:180px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pvt-date{min-width:52px;white-space:nowrap}
+.pvt-total-row-tr td{border-top:1px solid var(--border);background:rgba(99,102,241,.07);font-weight:600}
 .empty-state{text-align:center;padding:4rem 2rem}
 .e-icon{font-size:3rem;margin-bottom:1rem}
 .empty-state h3{font-size:1.1rem;margin-bottom:.5rem}
@@ -226,6 +229,8 @@ tr:hover td{background:rgba(99,102,241,.04)}
       <!-- tabela injetada dinamicamente pelo JS com id="card-tbl-hist-proms" -->
     </div>
 
+    <div class="panel" id="p-hist-pivot"></div>
+
     <div class="panel" id="p-hist-empty">
       <div class="empty-state"><div class="e-icon">📈</div><h3>Histórico vazio</h3><p>Faça o primeiro upload para começar a construir o histórico.</p><button class="btn-primary" onclick="document.getElementById('fi').click()">Fazer Upload</button></div>
     </div>
@@ -243,7 +248,9 @@ const charts = {};
 let cur = null, histData = null, histPromData = null;
 let nav = { p:'hist', s:'data' };
 const VG_TABS   = [{k:'overview',l:'📊 Overview'},{k:'promotor',l:'👤 Por Promotor'},{k:'hora',l:'🕐 Por Hora'},{k:'semana',l:'📅 Por Dia da Semana'}];
-const HIST_TABS = [{k:'data',l:'📈 Por Data'},{k:'proms',l:'👥 Promotores Recorrentes'}];
+const HIST_TABS = [{k:'data',l:'📈 Por Data'},{k:'proms',l:'👥 Promotores Recorrentes'},{k:'pivot',l:'🔢 Tabela Dinâmica'}];
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+function isoToLabel(s){ const p=s.split('-'); return p.length===3?`${parseInt(p[2])}/${MESES[parseInt(p[1])-1]}`:s; }
 
 // ── Init ──────────────────────────────────────────
 window.addEventListener('load', async () => {
@@ -531,12 +538,61 @@ function navigate(p, s) {
   sec.innerHTML = tabs.map(t=>`<button class="nav-tab${t.k===nav.s?' active':''}" data-s="${t.k}">${t.l}</button>`).join('');
   sec.querySelectorAll('[data-s]').forEach(b => b.addEventListener('click',()=>navigate(null,b.dataset.s)));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  if (nav.p==='hist') { if (nav.s==='data') renderHistData(); else renderHistProms(); }
+  if (nav.p==='hist') {
+    if (nav.s==='data') renderHistData();
+    else if (nav.s==='proms') renderHistProms();
+    else if (nav.s==='pivot') renderHistPivot();
+  }
   else document.getElementById(cur?`p-vg-${nav.s}`:'p-vg-empty').classList.add('active');
 }
 
 function showPanel(id) { document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
 document.querySelectorAll('#nav-primary .nav-tab').forEach(b => b.addEventListener('click',()=>navigate(b.dataset.p)));
+
+// ── Histórico: Tabela Dinâmica ────────────────────
+function renderHistPivot() {
+  if (!histPromData?.rows?.length) { showPanel('p-hist-empty'); return; }
+  showPanel('p-hist-pivot');
+  const byUID={}, allDates=new Set();
+  histPromData.rows.forEach(row => {
+    const date=String(row[1]).slice(0,10), uid=String(row[2]), nome=String(row[3]), count=Number(row[4])||0;
+    allDates.add(date);
+    if (!byUID[uid]) byUID[uid]={uid,nome,dates:{},total:0};
+    byUID[uid].dates[date]=(byUID[uid].dates[date]||0)+count;
+    byUID[uid].total+=count;
+    byUID[uid].nome=nome;
+  });
+  const dates=[ ...allDates].sort();
+  const proms=Object.values(byUID).sort((a,b)=>b.total-a.total);
+  const colTotals={};
+  dates.forEach(d=>{ colTotals[d]=proms.reduce((s,p)=>s+(p.dates[d]||0),0); });
+  const grandTotal=proms.reduce((s,p)=>s+p.total,0);
+  const thDates=dates.map(d=>`<th class="num-right pvt-date">${isoToLabel(d)}</th>`).join('');
+  const bodyRows=proms.map(p=>{
+    const cells=dates.map(d=>{const v=p.dates[d]||0;return`<td class="num-right">${v>0?v:''}</td>`;}).join('');
+    return`<tr><td class="pvt-name" title="${p.nome}">${p.nome}</td>${cells}<td class="num-right"><strong>${p.total}</strong></td></tr>`;
+  }).join('');
+  const totalCells=dates.map(d=>`<td class="num-right">${colTotals[d]||''}</td>`).join('');
+  document.getElementById('p-hist-pivot').innerHTML=`
+    <div class="chart-card">
+      <div class="chart-title">Ocorrências por Promotor × Data de Import</div>
+      <div class="table-wrap"><table class="pivot-table">
+        <thead><tr>
+          <th class="pvt-name-hdr">Rótulos de Linha</th>
+          ${thDates}
+          <th class="num-right pvt-date">Total Geral</th>
+        </tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="pvt-total-row-tr">
+            <td class="pvt-name"><strong>Total Geral</strong></td>
+            ${totalCells}
+            <td class="num-right"><strong>${grandTotal}</strong></td>
+          </tr>
+        </tbody>
+      </table></div>
+    </div>`;
+}
 
 // ── API ───────────────────────────────────────────
 async function fetchHistory() {
