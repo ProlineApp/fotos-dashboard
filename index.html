@@ -245,7 +245,7 @@ tr:hover td{background:rgba(99,102,241,.04)}
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzU_bob4vEc03kgT1tjFJziGfyil4qNva0iuoB1P60yb75YofFD7T2Hnq709oysr1k9yw/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiq23EILl1ZfoFN4X3W1Iux93M1dfj1F1lvsKq-qCiSRjoHrFodczBrhmILb3y8qwe9g/exec';
 const DIAS  = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const BAT_COLORS = ['rgba(239,68,68,.85)','rgba(245,158,11,.85)','rgba(251,191,36,.8)','rgba(96,165,250,.7)','rgba(52,211,153,.7)','rgba(16,185,129,.85)'];
@@ -532,7 +532,7 @@ function updateHistChart(){
   if(!histData)return;
   const fv=parseInt(document.getElementById('hist-filter').value);
   const dh=histData.headers.slice(1).map(String),vr=histData.rows.slice(-fv),n=vr.length;
-  const datasets=vr.map((row,i)=>{const isL=i===n-1,a=n===1?1:+(0.18+(i/(n-1))*0.82).toFixed(2);return{label:String(row[0]),data:row.slice(1).map(v=>(v===''||v===null||v===undefined)?null:+v),borderColor:`rgba(99,102,241,${a})`,pointBackgroundColor:`rgba(99,102,241,${a})`,pointBorderColor:`rgba(99,102,241,${a})`,borderWidth:isL?2.5:1.5,pointRadius:isL?4:2,tension:.3,fill:false,spanGaps:false};});
+  const datasets=vr.map((row,i)=>{const isL=i===n-1,a=n===1?1:+(0.18+(i/(n-1))*0.82).toFixed(2);return{label:String(row[0]),data:row.slice(1).map(v=>(v===''||v===null||v===undefined)?0:+v),borderColor:`rgba(99,102,241,${a})`,pointBackgroundColor:`rgba(99,102,241,${a})`,pointBorderColor:`rgba(99,102,241,${a})`,borderWidth:isL?2.5:1.5,pointRadius:isL?4:2,tension:.3,fill:false};});
   document.getElementById('hist-meta').textContent=`${n} importação(ões) · ${dh.length} dias · linha mais escura = mais recente`;
   mkChart('chart-hist',{type:'line',data:{labels:dh.map(isoToDM),datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1d2e',borderColor:'#2d3148',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#94a3b8',padding:10,callbacks:{title:i=>i[0].label,label:i=>` ${i.dataset.label}: ${i.parsed.y??'—'}`}}},scales:{x:{grid:{color:'rgba(45,49,72,.4)'},ticks:{color:'#94a3b8',font:{size:11},maxRotation:45,autoSkip:true,maxTicksLimit:20}},y:{grid:{color:'rgba(45,49,72,.4)'},ticks:{color:'#94a3b8',font:{size:11}},beginAtZero:true}}}});
 }
