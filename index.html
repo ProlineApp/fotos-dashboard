@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Proline – Fotos Perdidas</title>
-<!-- v2.3-pivot -->
+<!-- v3.0-full -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -41,7 +41,7 @@ header h1{font-size:17px;font-weight:700;color:#fff}
 #nav-secondary{background:var(--card);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;gap:.125rem;overflow-x:auto}
 .nav-tab{background:none;border:none;color:var(--muted);padding:.85rem 1rem;cursor:pointer;border-bottom:2px solid transparent;transition:color .2s,border-color .2s;white-space:nowrap}
 #nav-primary .nav-tab{font-size:.9rem;font-weight:500}
-#nav-secondary .nav-tab{font-size:.83rem;padding:.7rem .9rem}
+#nav-secondary .nav-tab{font-size:.83rem;padding:.7rem .85rem}
 .nav-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
 .nav-tab:hover:not(.active){color:var(--text)}
 main{padding:1.5rem;max-width:1200px;margin:0 auto}
@@ -76,7 +76,6 @@ tr:hover td{background:rgba(99,102,241,.04)}
 .mini-bar-wrap{display:flex;align-items:center;gap:.5rem}
 .mini-bar{flex:1;height:5px;background:var(--border);border-radius:3px;min-width:60px}
 .mini-bar-fill{height:100%;border-radius:3px}
-/* pivot */
 .pivot-table th.pvt-name-hdr,.pivot-table td.pvt-name{position:sticky;left:0;background:var(--card);z-index:1;min-width:180px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pvt-date{min-width:52px;white-space:nowrap}
 .pvt-total-row-tr td{border-top:1px solid var(--border);background:rgba(99,102,241,.07);font-weight:600}
@@ -96,7 +95,7 @@ tr:hover td{background:rgba(99,102,241,.04)}
   <div class="upload-card" id="drop-zone">
     <div class="upload-icon">📷</div>
     <h2>Tarefas Finalizadas sem Fotos</h2>
-    <p>Importe o arquivo <strong>.xlsx</strong> exportado do sistema para visualizar o painel de análise.</p>
+    <p>Importe o arquivo <strong>.xlsx</strong> exportado do sistema para visualizar o painel.</p>
     <button class="btn-primary" onclick="document.getElementById('fi').click()">Selecionar arquivo .xlsx</button>
     <input type="file" id="fi" accept=".xlsx,.xls" onchange="handleFile(this.files[0])">
     <p class="upload-note">🔒 Os dados são processados localmente — nenhum arquivo é enviado para servidores.</p>
@@ -130,6 +129,7 @@ tr:hover td{background:rgba(99,102,241,.04)}
   <nav id="nav-secondary"></nav>
   <main>
 
+    <!-- VG estáticos -->
     <div class="panel" id="p-vg-overview">
       <div class="kpi-grid">
         <div class="kpi-card"><div class="kpi-label">Total de Ocorrências</div><div class="kpi-value c-primary" id="kpi-total">—</div><div class="kpi-sub" id="kpi-periodo">—</div></div>
@@ -161,7 +161,7 @@ tr:hover td{background:rgba(99,102,241,.04)}
     <div class="panel" id="p-vg-hora">
       <div class="chart-card">
         <div class="chart-title">Distribuição por Hora do Dia</div>
-        <div style="position:relative;height:320px"><canvas id="chart-hora"></canvas></div>
+        <div style="position:relative;height:300px"><canvas id="chart-hora"></canvas></div>
         <p class="chart-hint">Baseado no horário de finalização da tarefa (END_AT).</p>
       </div>
     </div>
@@ -169,11 +169,17 @@ tr:hover td{background:rgba(99,102,241,.04)}
     <div class="panel" id="p-vg-semana">
       <div class="chart-card">
         <div class="chart-title">Distribuição por Dia da Semana</div>
-        <div style="position:relative;height:320px"><canvas id="chart-semana"></canvas></div>
+        <div style="position:relative;height:300px"><canvas id="chart-semana"></canvas></div>
         <p class="chart-hint">Baseado no dia da semana da finalização da tarefa (END_AT).</p>
       </div>
     </div>
 
+    <!-- VG dinâmicos (conteúdo injetado pelo JS) -->
+    <div class="panel" id="p-vg-local"></div>
+    <div class="panel" id="p-vg-pdv"></div>
+    <div class="panel" id="p-vg-bandeira"></div>
+    <div class="panel" id="p-vg-appandroid"></div>
+    <div class="panel" id="p-vg-bateria"></div>
     <div class="panel" id="p-vg-empty">
       <div class="empty-state"><div class="e-icon">📂</div><h3>Nenhum arquivo carregado</h3><p>Faça o upload de um arquivo .xlsx para visualizar a análise.</p><button class="btn-primary" onclick="document.getElementById('fi').click()">Fazer Upload</button></div>
     </div>
@@ -194,7 +200,7 @@ tr:hover td{background:rgba(99,102,241,.04)}
       </div>
     </div>
 
-    <!-- HIST: Promotores Recorrentes -->
+    <!-- HIST: Promotores -->
     <div class="panel" id="p-hist-proms">
       <div class="kpi-grid">
         <div class="kpi-card"><div class="kpi-label">Promotores Rastreados</div><div class="kpi-value c-info" id="hp-total-proms">—</div><div class="kpi-sub" id="hp-periodo">—</div></div>
@@ -223,124 +229,172 @@ tr:hover td{background:rgba(99,102,241,.04)}
       </div>
     </div>
 
-    <!-- HIST: Tabela Dinâmica -->
+    <!-- HIST dinâmicos -->
     <div class="panel" id="p-hist-pivot"></div>
+    <div class="panel" id="p-hist-local"></div>
+    <div class="panel" id="p-hist-bandeira"></div>
+    <div class="panel" id="p-hist-versao"></div>
 
     <div class="panel" id="p-hist-empty">
       <div class="empty-state"><div class="e-icon">📈</div><h3>Histórico vazio</h3><p>Faça o primeiro upload para começar a construir o histórico.</p><button class="btn-primary" onclick="document.getElementById('fi').click()">Fazer Upload</button></div>
     </div>
     <div class="panel" id="p-hist-error">
-      <div class="empty-state"><div class="e-icon">⚠️</div><h3>Histórico indisponível</h3><p>Não foi possível conectar ao banco de dados. Verifique o SCRIPT_URL.</p></div>
+      <div class="empty-state"><div class="e-icon">⚠️</div><h3>Histórico indisponível</h3><p>Não foi possível conectar ao banco de dados.</p></div>
     </div>
-
   </main>
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxMNPgdT2GchCs8lCHUKtEwdFX8OH4GIbZ7OeWba9lsMXbDA4VU3OSYl85rCjU2x5foNA/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzU_bob4vEc03kgT1tjFJziGfyil4qNva0iuoB1P60yb75YofFD7T2Hnq709oysr1k9yw/exec';
 const DIAS  = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const BAT_COLORS = ['rgba(239,68,68,.85)','rgba(245,158,11,.85)','rgba(251,191,36,.8)','rgba(96,165,250,.7)','rgba(52,211,153,.7)','rgba(16,185,129,.85)'];
 const charts = {};
-let cur = null, histData = null, histPromData = null, histPivotData = null;
+let cur = null;
+let histData=null, histPromData=null, histPivotData=null, histLocalData=null, histBanData=null, histVerData=null;
 let nav = { p:'hist', s:'data' };
 
-const VG_TABS   = [{k:'overview',l:'📊 Overview'},{k:'promotor',l:'👤 Por Promotor'},{k:'hora',l:'🕐 Por Hora'},{k:'semana',l:'📅 Por Dia da Semana'}];
-const HIST_TABS = [{k:'data',l:'📈 Por Data'},{k:'proms',l:'👥 Promotores Recorrentes'},{k:'pivot',l:'🔢 Tabela Dinâmica'}];
+const VG_TABS = [
+  {k:'overview',l:'📊 Overview'},{k:'promotor',l:'👤 Por Promotor'},
+  {k:'hora',l:'🕐 Por Hora'},{k:'semana',l:'📅 Por Dia da Semana'},
+  {k:'local',l:'🗺️ Localização'},{k:'pdv',l:'🏪 Por PDV'},
+  {k:'bandeira',l:'🏷️ Bandeira/Marca'},{k:'appandroid',l:'📱 App & Android'},
+  {k:'bateria',l:'🔋 Bateria & Alertas'}
+];
+const HIST_TABS = [
+  {k:'data',l:'📈 Por Data'},{k:'proms',l:'👥 Promotores Recorrentes'},
+  {k:'pivot',l:'🔢 Tabela Dinâmica'},{k:'local',l:'🗺️ Localização'},
+  {k:'bandeira',l:'🏷️ Bandeira/Marca'},{k:'versao',l:'📱 App & Android'}
+];
 
 // ── Init ──────────────────────────────────────────
 window.addEventListener('load', async () => {
   showOverlay('Buscando histórico...');
-  [histData, histPromData, histPivotData] = await Promise.all([fetchHistory(), fetchPromHistory(), fetchPivotHistory()]);
+  [histData,histPromData,histPivotData,histLocalData,histBanData,histVerData] =
+    await Promise.all([fetchH(''),fetchH('promotores'),fetchH('pivot'),fetchH('local'),fetchH('bandeira'),fetchH('versao')]);
   hideOverlay();
-  const has = histData?.rows?.length>0 || histPromData?.rows?.length>0 || histPivotData?.rows?.length>0;
-  if (has) { showDashboard(); navigate('hist', histData?.rows?.length>0 ? 'data' : 'proms'); }
-  else document.getElementById('upload-screen').style.display = 'flex';
+  const has = [histData,histPromData,histPivotData,histLocalData,histBanData,histVerData].some(d=>d?.rows?.length>0);
+  if (has) { showDashboard(); navigate('hist', histData?.rows?.length>0?'data':'proms'); }
+  else document.getElementById('upload-screen').style.display='flex';
 });
 
-const dz = document.getElementById('drop-zone');
-dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
-dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
-dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+const dz=document.getElementById('drop-zone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');handleFile(e.dataTransfer.files[0])});
 
-function showDashboard() {
-  document.getElementById('upload-screen').style.display = 'none';
-  document.getElementById('dashboard').classList.add('show');
-}
+function showDashboard(){document.getElementById('upload-screen').style.display='none';document.getElementById('dashboard').classList.add('show')}
 
 // ── File handling ─────────────────────────────────
 async function handleFile(file) {
   if (!file) return;
-  showOverlay('Lendo ' + file.name + '...');  await wait(60);
+  showOverlay('Lendo '+file.name+'...'); await wait(60);
   const buf = await file.arrayBuffer();
-  setMsg('Processando dados...');              await wait(60);
-  const wb = XLSX.read(buf, { type:'array', cellDates:true });
-  const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:'' });
-  setMsg('Calculando indicadores...');         await wait(60);
+  setMsg('Processando dados...'); await wait(60);
+  const wb = XLSX.read(buf,{type:'array',cellDates:true});
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+  setMsg('Calculando indicadores...'); await wait(60);
   cur = process(rows);
-  document.getElementById('file-badge').textContent = file.name;
-  document.getElementById('last-upload').style.display = 'flex';
-  setMsg('Salvando no histórico...');          await wait(60);
-  await postHistory(file.name, cur.byDay, cur.promotores, cur.pivotRows);
-  setMsg('Atualizando histórico...');          await wait(60);
-  [histData, histPromData, histPivotData] = await Promise.all([fetchHistory(), fetchPromHistory(), fetchPivotHistory()]);
-  setMsg('Montando gráficos...');              await wait(60);
-  showDashboard(); renderVG(cur); navigate('vg', 'overview'); hideOverlay();
+  document.getElementById('file-badge').textContent=file.name;
+  document.getElementById('last-upload').style.display='flex';
+  setMsg('Salvando no histórico...'); await wait(60);
+  await postHistory(file.name, cur);
+  setMsg('Atualizando histórico...'); await wait(60);
+  [histData,histPromData,histPivotData,histLocalData,histBanData,histVerData] =
+    await Promise.all([fetchH(''),fetchH('promotores'),fetchH('pivot'),fetchH('local'),fetchH('bandeira'),fetchH('versao')]);
+  setMsg('Montando gráficos...'); await wait(60);
+  showDashboard(); renderVG(cur); navigate('vg','overview'); hideOverlay();
 }
 
 // ── Processing ────────────────────────────────────
-function parseDate(v) {
-  if (!v) return null;
-  if (v instanceof Date) return isNaN(v) ? null : v;
-  if (typeof v === 'number') { const d=new Date(Math.round((v-25569)*86400000)); return isNaN(d)?null:d; }
-  const d = new Date(String(v).trim().replace(' ','T')); return isNaN(d)?null:d;
+function parseDate(v){
+  if(!v)return null; if(v instanceof Date)return isNaN(v)?null:v;
+  if(typeof v==='number'){const d=new Date(Math.round((v-25569)*86400000));return isNaN(d)?null:d;}
+  const d=new Date(String(v).trim().replace(' ','T'));return isNaN(d)?null:d;
 }
-function fmtDate(d) { return d?d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—'; }
-function isoToDMY(s){ const p=String(s).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:s; }
-function isoToDM(s) { const p=String(s).split('-'); return p.length===3?`${p[2]}/${p[1]}`:s; }
-function isoToLabel(s){ const p=String(s).split('-'); return p.length===3?`${parseInt(p[2])}/${MESES[parseInt(p[1])-1]}`:s; }
+function fmtDate(d){return d?d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—'}
+function isoToDMY(s){const p=String(s).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:s}
+function isoToDM(s){const p=String(s).split('-');return p.length===3?`${p[2]}/${p[1]}`:s}
+function isoToLabel(s){const p=String(s).split('-');return p.length===3?`${parseInt(p[2])}/${MESES[parseInt(p[1])-1]}`:s}
+function clean(v){const s=String(v||'').trim();return s&&s.toLowerCase()!=='null'&&s.toLowerCase()!=='undefined'?s:'N/I'}
 
 function process(rawRows) {
-  const norm = rawRows.map(r => { const o={}; Object.keys(r).forEach(k=>o[k.trim().toUpperCase()]=r[k]); return o; });
-  const data = norm.filter(r => r['END_AT']||r['START_AT']);
-  const byDay={}, byHour=Array(24).fill(0), byDow=Array(7).fill(0), byProm={};
-  let minD=null, maxD=null;
-  data.forEach(r => {
-    const end  = parseDate(r['END_AT']||r['START_AT']);
-    const nome = String(r['NOME']||'Desconhecido').trim();
-    const uid  = String(r['USER_ID']||'0').trim();
-    if (end) {
-      const dk = end.toISOString().slice(0,10);
-      byDay[dk] = (byDay[dk]||0)+1;
-      byHour[end.getHours()]++;
-      byDow[end.getDay()]++;
-      if (!minD||end<minD) minD=end;
-      if (!maxD||end>maxD) maxD=end;
-      // por promotor × dia
-      if (!byProm[uid]) byProm[uid]={uid,nome,count:0,byDay:{}};
-      byProm[uid].byDay[dk] = (byProm[uid].byDay[dk]||0)+1;
-    } else {
-      if (!byProm[uid]) byProm[uid]={uid,nome,count:0,byDay:{}};
+  const norm=rawRows.map(r=>{const o={};Object.keys(r).forEach(k=>o[k.trim().toUpperCase()]=r[k]);return o;});
+  const data=norm.filter(r=>r['END_AT']||r['START_AT']);
+  const byDay={},byHour=Array(24).fill(0),byDow=Array(7).fill(0),byProm={};
+  const byUF={},byCidade={},byPDV={},byBandeira={},byMarca={},byAppVer={},byAndroid={},byAlerta={};
+  const batI=[],batF=[],batM=[];
+  let minD=null,maxD=null;
+
+  data.forEach(r=>{
+    const end=parseDate(r['END_AT']||r['START_AT']);
+    const nome=clean(r['NOME']),uid=clean(r['USER_ID']);
+    const uf=clean(r['UF']),cidade=clean(r['CIDADE']),pdv=clean(r['PDV']);
+    const bandeira=clean(r['BANDEIRA']),marca=clean(r['MARCA']);
+    const appVer=clean(r['APP_VERSION']),android=clean(r['ANDROID_OS']);
+    const bI=parseFloat(r['BATERIA_INICIO_%']),bF=parseFloat(r['BATERIA_FIM_%']),bM=parseFloat(r['BATERIA_MIN_%']);
+    const alertas=String(r['ALERTAS']||'').trim();
+
+    if(end){
+      const dk=end.toISOString().slice(0,10);
+      byDay[dk]=(byDay[dk]||0)+1;
+      byHour[end.getHours()]++;byDow[end.getDay()]++;
+      if(!minD||end<minD)minD=end;if(!maxD||end>maxD)maxD=end;
+      if(!byProm[uid])byProm[uid]={uid,nome,count:0,byDay:{}};
+      byProm[uid].byDay[dk]=(byProm[uid].byDay[dk]||0)+1;
     }
-    byProm[uid].count++;
-    byProm[uid].nome = nome;
+    if(!byProm[uid])byProm[uid]={uid,nome,count:0,byDay:{}};
+    byProm[uid].count++;byProm[uid].nome=nome;
+
+    // Localização
+    byUF[uf]=(byUF[uf]||0)+1;
+    const ck=`${uf}||${cidade}`;
+    if(!byCidade[ck])byCidade[ck]={uf,cidade,count:0};byCidade[ck].count++;
+    // PDV
+    if(!byPDV[pdv])byPDV[pdv]={pdv,cidade,uf,count:0};byPDV[pdv].count++;
+    // Bandeira/Marca
+    byBandeira[bandeira]=(byBandeira[bandeira]||0)+1;
+    byMarca[marca]=(byMarca[marca]||0)+1;
+    // App/Android
+    byAppVer[appVer]=(byAppVer[appVer]||0)+1;
+    byAndroid[android]=(byAndroid[android]||0)+1;
+    // Bateria
+    if(!isNaN(bI))batI.push(bI);if(!isNaN(bF))batF.push(bF);if(!isNaN(bM))batM.push(bM);
+    // Alertas
+    if(alertas)alertas.split('|').map(a=>a.trim()).filter(Boolean).forEach(a=>{byAlerta[a]=(byAlerta[a]||0)+1;});
   });
-  const promotores = Object.values(byProm).sort((a,b)=>b.count-a.count);
-  const sortedDays = Object.keys(byDay).sort();
-  const picoDia = sortedDays.reduce((b,d)=>byDay[d]>(byDay[b]||0)?d:b, sortedDays[0]);
-  // pivot rows: uma entrada por (uid × data_tarefa)
-  const pivotRows = [];
-  promotores.forEach(p => {
-    Object.entries(p.byDay).forEach(([date, count]) => {
-      pivotRows.push({ uid:p.uid, nome:p.nome, data_tarefa:date, ocorrencias:count });
-    });
-  });
-  return { total:data.length, promotores, byDay, sortedDays, byHour, byDow, minD, maxD, picoDia, pivotRows };
+
+  const avg=arr=>arr.length?(arr.reduce((s,v)=>s+v,0)/arr.length).toFixed(1):'—';
+  const faixas={'0–10%':0,'11–20%':0,'21–30%':0,'31–50%':0,'51–80%':0,'81–100%':0};
+  batM.forEach(v=>{if(v<=10)faixas['0–10%']++;else if(v<=20)faixas['11–20%']++;else if(v<=30)faixas['21–30%']++;else if(v<=50)faixas['31–50%']++;else if(v<=80)faixas['51–80%']++;else faixas['81–100%']++;});
+
+  const promotores=Object.values(byProm).sort((a,b)=>b.count-a.count);
+  const sortedDays=Object.keys(byDay).sort();
+  const picoDia=sortedDays.reduce((b,d)=>byDay[d]>(byDay[b]||0)?d:b,sortedDays[0]);
+
+  const pivotRows=[];
+  promotores.forEach(p=>Object.entries(p.byDay).forEach(([date,count])=>pivotRows.push({uid:p.uid,nome:p.nome,data_tarefa:date,ocorrencias:count})));
+
+  const banMap={};
+  data.forEach(r=>{const b=clean(r['BANDEIRA']),m=clean(r['MARCA']),k=`${b}||${m}`;if(!banMap[k])banMap[k]={bandeira:b,marca:m,count:0};banMap[k].count++;});
+  const banRows=Object.values(banMap).map(x=>({bandeira:x.bandeira,marca:x.marca,ocorrencias:x.count}));
+
+  const verMap={};
+  data.forEach(r=>{const a=clean(r['APP_VERSION']),os=clean(r['ANDROID_OS']),k=`${a}||${os}`;if(!verMap[k])verMap[k]={app_version:a,android_os:os,count:0};verMap[k].count++;});
+  const verRows=Object.values(verMap).map(x=>({app_version:x.app_version,android_os:x.android_os,ocorrencias:x.count}));
+
+  const localRows=Object.values(byCidade).map(x=>({uf:x.uf,cidade:x.cidade,ocorrencias:x.count}));
+
+  const batteryStats={avgI:avg(batI),avgF:avg(batF),avgM:avg(batM),pctCrit:batM.length?((batM.filter(v=>v<20).length/batM.length)*100).toFixed(1):'—',faixas};
+
+  return{total:data.length,promotores,byDay,sortedDays,byHour,byDow,minD,maxD,picoDia,
+    byUF,byCidade,byPDV,byBandeira,byMarca,byAppVer,byAndroid,byAlerta,batteryStats,
+    pivotRows,localRows,banRows,verRows};
 }
 
-// ── Render Visão Geral ────────────────────────────
-function renderVG(d) {
-  const top=d.promotores[0];
-  const [,pm,pday]=(d.picoDia||'').split('-');
+// ── Render VG base ────────────────────────────────
+function renderVG(d){
+  const top=d.promotores[0],[ ,pm,pday]=(d.picoDia||'').split('-');
   document.getElementById('kpi-total').textContent=d.total.toLocaleString('pt-BR');
   document.getElementById('kpi-periodo').textContent=d.minD&&d.maxD?fmtDate(d.minD)+' → '+fmtDate(d.maxD):'—';
   document.getElementById('kpi-proms').textContent=d.promotores.length.toLocaleString('pt-BR');
@@ -349,291 +403,306 @@ function renderVG(d) {
   document.getElementById('kpi-pico-dia').textContent=d.picoDia?`pico em ${pday}/${pm} (${d.byDay[d.picoDia]})`:'—';
   document.getElementById('kpi-top-n').textContent=top?top.count.toLocaleString('pt-BR'):'—';
   document.getElementById('kpi-top-nome').textContent=top?top.nome:'—';
-
   mkChart('chart-dias',{type:'bar',data:{labels:d.sortedDays.map(dk=>{const[,m,dy]=dk.split('-');return`${dy}/${m}`;}),datasets:[{label:'Ocorrências',data:d.sortedDays.map(dk=>d.byDay[dk]),backgroundColor:d.sortedDays.map(dk=>dk===d.picoDia?'rgba(245,158,11,.85)':'rgba(99,102,241,.7)'),borderColor:d.sortedDays.map(dk=>dk===d.picoDia?'#f59e0b':'#6366f1'),borderWidth:1,borderRadius:4}]},options:baseOpts()});
-
   const top20=d.promotores.slice(0,20);
   document.getElementById('wrap-prom').style.height=Math.max(320,top20.length*30)+'px';
   mkChart('chart-prom',{type:'bar',data:{labels:top20.map(p=>p.nome),datasets:[{label:'Ocorrências',data:top20.map(p=>p.count),backgroundColor:top20.map((_,i)=>i===0?'rgba(245,158,11,.85)':'rgba(99,102,241,.65)'),borderColor:top20.map((_,i)=>i===0?'#f59e0b':'#6366f1'),borderWidth:1,borderRadius:3}]},options:{...baseOpts(),indexAxis:'y'}});
-
-  document.getElementById('note-prom').textContent=`${d.promotores.length} promotor(es) com ocorrências. "${top?.nome}" concentra ${top?((top.count/d.total)*100).toFixed(1):0}% do total.`;
-  const tbody=document.getElementById('tbody-prom'); tbody.innerHTML='';
-  const mx=d.promotores[0]?.count||1;
-  d.promotores.forEach((p,i)=>{
-    const bw=((p.count/mx)*100).toFixed(1);
-    const color=p.count/mx>.66?'var(--danger)':p.count/mx>.33?'var(--alert)':'var(--primary)';
-    tbody.innerHTML+=`<tr><td class="rank-num">${i+1}</td><td>${p.nome}</td><td><strong>${p.count.toLocaleString('pt-BR')}</strong></td><td>${((p.count/d.total)*100).toFixed(1)}%</td><td><div class="mini-bar-wrap"><div class="mini-bar"><div class="mini-bar-fill" style="width:${bw}%;background:${color}"></div></div></div></td></tr>`;
-  });
-
+  document.getElementById('note-prom').textContent=`${d.promotores.length} promotor(es). "${top?.nome}" concentra ${top?((top.count/d.total)*100).toFixed(1):0}% do total.`;
+  const tbody=document.getElementById('tbody-prom');tbody.innerHTML='';const mx=d.promotores[0]?.count||1;
+  d.promotores.forEach((p,i)=>{const bw=((p.count/mx)*100).toFixed(1);const color=p.count/mx>.66?'var(--danger)':p.count/mx>.33?'var(--alert)':'var(--primary)';tbody.innerHTML+=`<tr><td class="rank-num">${i+1}</td><td>${p.nome}</td><td><strong>${p.count.toLocaleString('pt-BR')}</strong></td><td>${((p.count/d.total)*100).toFixed(1)}%</td><td><div class="mini-bar-wrap"><div class="mini-bar"><div class="mini-bar-fill" style="width:${bw}%;background:${color}"></div></div></div></td></tr>`;});
   const maxH=Math.max(...d.byHour);
   mkChart('chart-hora',{type:'bar',data:{labels:Array.from({length:24},(_,i)=>i.toString().padStart(2,'0')+'h'),datasets:[{label:'Ocorrências',data:d.byHour,backgroundColor:d.byHour.map(v=>v===maxH?'rgba(245,158,11,.85)':'rgba(96,165,250,.7)'),borderColor:d.byHour.map(v=>v===maxH?'#f59e0b':'#60a5fa'),borderWidth:1,borderRadius:3}]},options:baseOpts()});
   const maxDow=Math.max(...d.byDow);
   mkChart('chart-semana',{type:'bar',data:{labels:DIAS,datasets:[{label:'Ocorrências',data:d.byDow,backgroundColor:d.byDow.map(v=>v===maxDow?'rgba(245,158,11,.85)':'rgba(167,139,250,.7)'),borderColor:d.byDow.map(v=>v===maxDow?'#f59e0b':'#a78bfa'),borderWidth:1,borderRadius:3}]},options:baseOpts()});
 }
 
-// ── Histórico: Por Data ───────────────────────────
-function renderHistData() {
-  if (!histData?.rows?.length) { showPanel('p-hist-empty'); return; }
-  showPanel('p-hist-data');
-  buildHistFilter();
-  updateHistChart();
+// ── Render VG dinâmicos ───────────────────────────
+function renderVGPanel(k,d){
+  if(k==='local')renderVGLocal(d);
+  else if(k==='pdv')renderVGPDV(d);
+  else if(k==='bandeira')renderVGBandeira(d);
+  else if(k==='appandroid')renderVGAppAndroid(d);
+  else if(k==='bateria')renderVGBateria(d);
+}
+
+function hBar(id,labels,data,color,hint=''){
+  const h=Math.max(200,labels.length*30);
+  return`<div style="position:relative;height:${h}px"><canvas id="${id}"></canvas></div>${hint?`<p class="chart-hint">${hint}</p>`:''}`;
+}
+function buildHBar(id,labels,data,color){
+  document.getElementById(id).parentElement.style.height=Math.max(200,labels.length*30)+'px';
+  mkChart(id,{type:'bar',data:{labels,datasets:[{label:'Ocorrências',data,backgroundColor:color,borderColor:color.replace(/[\d.]+\)$/,'1)'),borderWidth:1,borderRadius:3}]},options:{...baseOpts(),indexAxis:'y'}});
+}
+
+function renderVGLocal(d){
+  const ufData=Object.entries(d.byUF).sort((a,b)=>b[1]-a[1]);
+  const cidData=Object.values(d.byCidade).sort((a,b)=>b.count-a.count).slice(0,15);
+  document.getElementById('p-vg-local').innerHTML=`
+    <div class="chart-card"><div class="chart-title">Por UF</div>${hBar('chart-uf',ufData.map(([u])=>u),ufData.map(([,c])=>c),'rgba(99,102,241,.7)')}</div>
+    <div class="chart-card"><div class="chart-title">Top 15 Cidades</div>${hBar('chart-cid',cidData.map(c=>`${c.cidade} (${c.uf})`),cidData.map(c=>c.count),'rgba(96,165,250,.7)')}</div>`;
+  buildHBar('chart-uf',ufData.map(([u])=>u),ufData.map(([,c])=>c),'rgba(99,102,241,.7)');
+  buildHBar('chart-cid',cidData.map(c=>`${c.cidade} (${c.uf})`),cidData.map(c=>c.count),'rgba(96,165,250,.7)');
+}
+
+function renderVGPDV(d){
+  const pdvData=Object.values(d.byPDV).sort((a,b)=>b.count-a.count).slice(0,20);
+  const total=pdvData.reduce((s,p)=>s+p.count,0)||1;
+  document.getElementById('p-vg-pdv').innerHTML=`
+    <div class="chart-card"><div class="chart-title">Ranking de PDVs (top 20)</div>${hBar('chart-pdv',pdvData.map(p=>p.pdv),pdvData.map(p=>p.count),'rgba(99,102,241,.7)')}</div>`;
+  const pdvH=Math.max(300,pdvData.length*30);
+  document.getElementById('chart-pdv').parentElement.style.height=pdvH+'px';
+  mkChart('chart-pdv',{type:'bar',data:{labels:pdvData.map(p=>p.pdv),datasets:[{label:'Ocorrências',data:pdvData.map(p=>p.count),backgroundColor:pdvData.map((_,i)=>i===0?'rgba(245,158,11,.85)':'rgba(99,102,241,.65)'),borderColor:pdvData.map((_,i)=>i===0?'#f59e0b':'#6366f1'),borderWidth:1,borderRadius:3}]},options:{...baseOpts(),indexAxis:'y'}});
+  injectTableCard('card-tbl-pdv','p-vg-pdv','Tabela Detalhada',
+    '<tr><th>#</th><th>PDV</th><th>Cidade</th><th>UF</th><th class="num-right">Ocorrências</th><th class="num-right">%</th></tr>',
+    pdvData.map((p,i)=>`<tr><td class="rank-num">${i+1}</td><td>${p.pdv}</td><td>${p.cidade}</td><td>${p.uf}</td><td class="num-right"><strong>${p.count}</strong></td><td class="num-right">${((p.count/total)*100).toFixed(1)}%</td></tr>`).join(''));
+}
+
+function renderVGBandeira(d){
+  const banData=Object.entries(d.byBandeira).sort((a,b)=>b[1]-a[1]);
+  const mrcData=Object.entries(d.byMarca).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('p-vg-bandeira').innerHTML=`
+    <div class="chart-card"><div class="chart-title">Por Bandeira</div>${hBar('chart-bandeira',banData.map(([b])=>b),banData.map(([,c])=>c),'rgba(167,139,250,.7)')}</div>
+    <div class="chart-card"><div class="chart-title">Por Marca</div>${hBar('chart-marca',mrcData.map(([m])=>m),mrcData.map(([,c])=>c),'rgba(52,211,153,.7)')}</div>`;
+  buildHBar('chart-bandeira',banData.map(([b])=>b),banData.map(([,c])=>c),'rgba(167,139,250,.7)');
+  buildHBar('chart-marca',mrcData.map(([m])=>m),mrcData.map(([,c])=>c),'rgba(52,211,153,.7)');
+}
+
+function renderVGAppAndroid(d){
+  const appData=Object.entries(d.byAppVer).sort((a,b)=>b[1]-a[1]);
+  const andData=Object.entries(d.byAndroid).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('p-vg-appandroid').innerHTML=`
+    <div class="chart-card"><div class="chart-title">Por Versão do App</div>${hBar('chart-appver',appData.map(([v])=>v),appData.map(([,c])=>c),'rgba(96,165,250,.7)')}</div>
+    <div class="chart-card"><div class="chart-title">Por Versão do Android</div>${hBar('chart-android',andData.map(([v])=>v),andData.map(([,c])=>c),'rgba(245,158,11,.7)')}</div>`;
+  buildHBar('chart-appver',appData.map(([v])=>v),appData.map(([,c])=>c),'rgba(96,165,250,.7)');
+  buildHBar('chart-android',andData.map(([v])=>v),andData.map(([,c])=>c),'rgba(245,158,11,.7)');
+}
+
+function renderVGBateria(d){
+  const b=d.batteryStats;
+  const faixas=Object.entries(b.faixas);
+  const altData=Object.entries(d.byAlerta).sort((a,c)=>c[1]-a[1]);
+  const altH=Math.max(100,altData.length*40);
+  document.getElementById('p-vg-bateria').innerHTML=`
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Média Bateria Início</div><div class="kpi-value c-success">${b.avgI}%</div><div class="kpi-sub">ao iniciar a tarefa</div></div>
+      <div class="kpi-card"><div class="kpi-label">Média Bateria Fim</div><div class="kpi-value c-info">${b.avgF}%</div><div class="kpi-sub">ao finalizar a tarefa</div></div>
+      <div class="kpi-card"><div class="kpi-label">Média Bateria Mínima</div><div class="kpi-value c-alert">${b.avgM}%</div><div class="kpi-sub">menor nível registrado</div></div>
+      <div class="kpi-card"><div class="kpi-label">Bateria Crítica (&lt;20%)</div><div class="kpi-value c-danger">${b.pctCrit}%</div><div class="kpi-sub">das tarefas</div></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Distribuição por Faixa de Bateria Mínima</div>
+      <div style="position:relative;height:240px"><canvas id="chart-batfaixa"></canvas></div>
+      <p class="chart-hint">Menor nível de bateria registrado durante a execução da tarefa (BATERIA_MIN_%). Faixas vermelhas indicam risco de falha no envio por bateria insuficiente.</p>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Alertas Registrados</div>
+      <div style="position:relative;height:${altH}px"><canvas id="chart-alertas"></canvas></div>
+      <p class="chart-hint">missing_photo está presente em todas as ocorrências pois é o critério do relatório. Os demais alertas são fatores adicionais.</p>
+    </div>`;
+  mkChart('chart-batfaixa',{type:'bar',data:{labels:faixas.map(([f])=>f),datasets:[{label:'Ocorrências',data:faixas.map(([,c])=>c),backgroundColor:BAT_COLORS,borderColor:BAT_COLORS.map(c=>c.replace(/[\d.]+\)$/,'1)')),borderWidth:1,borderRadius:3}]},options:baseOpts()});
+  mkChart('chart-alertas',{type:'bar',data:{labels:altData.map(([a])=>a),datasets:[{label:'Ocorrências',data:altData.map(([,c])=>c),backgroundColor:'rgba(239,68,68,.7)',borderColor:'#ef4444',borderWidth:1,borderRadius:3}]},options:{...baseOpts(),indexAxis:'y'}});
+}
+
+// ── Render Histórico: Por Data ────────────────────
+function renderHistData(){
+  if(!histData?.rows?.length){showPanel('p-hist-empty');return;}
+  showPanel('p-hist-data');buildHistFilter();updateHistChart();
   injectTableCard('card-tbl-hist-data','p-hist-data','Uploads Registrados',
-    '<tr><th>Arquivo</th><th>Data Upload</th><th class="num-right">Total Fotos</th><th class="num-right">Dias Afetados</th><th class="num-right">Promotores</th><th class="num-right">Pico do Dia</th></tr>',
+    '<tr><th>Arquivo</th><th>Data Upload</th><th class="num-right">Total</th><th class="num-right">Dias</th><th class="num-right">Promotores</th><th class="num-right">Pico</th></tr>',
     buildUploadsRows());
 }
-
-function buildUploadsRows() {
-  const dateHdrs=histData.headers.slice(1).map(String);
-  const uploadDates={}, uploadProms={};
-  if (histPromData?.rows) {
-    histPromData.rows.forEach(r=>{
-      const uid=String(r[0]);
-      if (!uploadDates[uid]) uploadDates[uid]=String(r[1]).slice(0,10);
-      if (!uploadProms[uid]) uploadProms[uid]=new Set();
-      uploadProms[uid].add(String(r[2]));
-    });
-  }
-  return [...histData.rows].reverse().map(row=>{
-    const fname=String(row[0]);
-    const vals=row.slice(1).map(v=>(v===''||v===null||v===undefined)?0:+v);
-    const total=vals.reduce((s,v)=>s+v,0);
-    const dias=vals.filter(v=>v>0).length;
-    const pico=Math.max(0,...vals);
-    const picoI=vals.indexOf(pico);
-    const picoDia=(picoI>=0&&dateHdrs[picoI])?isoToDM(dateHdrs[picoI]):'—';
-    const dataUp=uploadDates[fname]?isoToDMY(uploadDates[fname]):'—';
-    const nProms=uploadProms[fname]?uploadProms[fname].size:'—';
-    return`<tr><td class="tbl-file" title="${fname}">${fname}</td><td style="color:var(--muted);font-size:.8rem">${dataUp}</td><td class="num-right"><strong>${total.toLocaleString('pt-BR')}</strong></td><td class="num-right">${dias}</td><td class="num-right">${nProms}</td><td class="num-right">${pico.toLocaleString('pt-BR')} <span style="color:var(--muted);font-size:.72rem">(${picoDia})</span></td></tr>`;
+function buildUploadsRows(){
+  const dHdrs=histData.headers.slice(1).map(String);
+  const upDates={},upProms={};
+  if(histPromData?.rows)histPromData.rows.forEach(r=>{const u=String(r[0]);if(!upDates[u])upDates[u]=String(r[1]).slice(0,10);if(!upProms[u])upProms[u]=new Set();upProms[u].add(String(r[2]));});
+  return[...histData.rows].reverse().map(row=>{
+    const fn=String(row[0]),vals=row.slice(1).map(v=>(v===''||v===null||v===undefined)?0:+v);
+    const total=vals.reduce((s,v)=>s+v,0),dias=vals.filter(v=>v>0).length;
+    const pico=Math.max(0,...vals),picoI=vals.indexOf(pico);
+    const picoDia=(picoI>=0&&dHdrs[picoI])?isoToDM(dHdrs[picoI]):'—';
+    return`<tr><td class="tbl-file" title="${fn}">${fn}</td><td style="color:var(--muted);font-size:.8rem">${upDates[fn]?isoToDMY(upDates[fn]):'—'}</td><td class="num-right"><strong>${total.toLocaleString('pt-BR')}</strong></td><td class="num-right">${dias}</td><td class="num-right">${upProms[fn]?upProms[fn].size:'—'}</td><td class="num-right">${pico} <span style="color:var(--muted);font-size:.72rem">(${picoDia})</span></td></tr>`;
   }).join('');
 }
-
-function buildHistFilter() {
-  const n=histData.rows.length, sel=document.getElementById('hist-filter');
-  sel.innerHTML='';
-  [3,5,10,20].filter(v=>v<n).forEach(v=>{ sel.innerHTML+=`<option value="${v}">últimas ${v}</option>`; });
-  sel.innerHTML+=`<option value="9999">todas (${n})</option>`;
-  sel.value=n<=5?'9999':'5';
+function buildHistFilter(){
+  const n=histData.rows.length,sel=document.getElementById('hist-filter');
+  sel.innerHTML='';[3,5,10,20].filter(v=>v<n).forEach(v=>{sel.innerHTML+=`<option value="${v}">últimas ${v}</option>`;});
+  sel.innerHTML+=`<option value="9999">todas (${n})</option>`;sel.value=n<=5?'9999':'5';
+}
+function updateHistChart(){
+  if(!histData)return;
+  const fv=parseInt(document.getElementById('hist-filter').value);
+  const dh=histData.headers.slice(1).map(String),vr=histData.rows.slice(-fv),n=vr.length;
+  const datasets=vr.map((row,i)=>{const isL=i===n-1,a=n===1?1:+(0.18+(i/(n-1))*0.82).toFixed(2);return{label:String(row[0]),data:row.slice(1).map(v=>(v===''||v===null||v===undefined)?null:+v),borderColor:`rgba(99,102,241,${a})`,pointBackgroundColor:`rgba(99,102,241,${a})`,pointBorderColor:`rgba(99,102,241,${a})`,borderWidth:isL?2.5:1.5,pointRadius:isL?4:2,tension:.3,fill:false,spanGaps:false};});
+  document.getElementById('hist-meta').textContent=`${n} importação(ões) · ${dh.length} dias · linha mais escura = mais recente`;
+  mkChart('chart-hist',{type:'line',data:{labels:dh.map(isoToDM),datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1d2e',borderColor:'#2d3148',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#94a3b8',padding:10,callbacks:{title:i=>i[0].label,label:i=>` ${i.dataset.label}: ${i.parsed.y??'—'}`}}},scales:{x:{grid:{color:'rgba(45,49,72,.4)'},ticks:{color:'#94a3b8',font:{size:11},maxRotation:45,autoSkip:true,maxTicksLimit:20}},y:{grid:{color:'rgba(45,49,72,.4)'},ticks:{color:'#94a3b8',font:{size:11}},beginAtZero:true}}}});
 }
 
-function updateHistChart() {
-  if (!histData) return;
-  const filterVal=parseInt(document.getElementById('hist-filter').value);
-  const dateHeaders=histData.headers.slice(1).map(String);
-  const visRows=histData.rows.slice(-filterVal);
-  const n=visRows.length;
-  const datasets=visRows.map((row,i)=>{
-    const isLatest=i===n-1;
-    const alpha=n===1?1:+(0.18+(i/(n-1))*0.82).toFixed(2);
-    return{label:String(row[0]),data:row.slice(1).map(v=>(v===''||v===null||v===undefined)?null:+v),
-      borderColor:`rgba(99,102,241,${alpha})`,pointBackgroundColor:`rgba(99,102,241,${alpha})`,
-      pointBorderColor:`rgba(99,102,241,${alpha})`,borderWidth:isLatest?2.5:1.5,
-      pointRadius:isLatest?4:2,tension:.3,fill:false,spanGaps:false};
-  });
-  document.getElementById('hist-meta').textContent=`${n} importação(ões) exibida(s) · ${dateHeaders.length} dias monitorados · linha mais escura = mais recente`;
-  mkChart('chart-hist',{type:'line',data:{labels:dateHeaders.map(isoToDM),datasets},options:{
-    responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1d2e',borderColor:'#2d3148',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#94a3b8',padding:10,callbacks:{title:i=>i[0].label,label:i=>` ${i.dataset.label}: ${i.parsed.y??'—'}`}}},
-    scales:{x:{grid:{color:'rgba(45,49,72,.4)'},ticks:{color:'#94a3b8',font:{size:11},maxRotation:45,autoSkip:true,maxTicksLimit:20}},y:{grid:{color:'rgba(45,49,72,.4)'},ticks:{color:'#94a3b8',font:{size:11}},beginAtZero:true}}
-  }});
-}
-
-// ── Histórico: Promotores Recorrentes ─────────────
-function renderHistProms() {
-  if (!histPromData?.rows?.length) { showPanel('p-hist-empty'); return; }
+// ── Render Histórico: Promotores ──────────────────
+function renderHistProms(){
+  if(!histPromData?.rows?.length){showPanel('p-hist-empty');return;}
   showPanel('p-hist-proms');
   const byUID={};
-  histPromData.rows.forEach(row=>{
-    const uid=String(row[2]),nome=String(row[3]),count=Number(row[4])||0,upload=String(row[0]);
-    if (!byUID[uid]) byUID[uid]={uid,nome,total:0,uploads:new Set()};
-    byUID[uid].total+=count; byUID[uid].uploads.add(upload); byUID[uid].nome=nome;
-  });
-  const allProms=Object.values(byUID).map(p=>({...p,imports:p.uploads.size})).sort((a,b)=>b.total-a.total);
-  const totalFotos=allProms.reduce((s,p)=>s+p.total,0);
-  const topRec=[...allProms].sort((a,b)=>b.imports-a.imports)[0];
-  const topFotos=allProms[0];
+  histPromData.rows.forEach(row=>{const uid=String(row[2]),nome=String(row[3]),count=Number(row[4])||0,up=String(row[0]);if(!byUID[uid])byUID[uid]={uid,nome,total:0,uploads:new Set()};byUID[uid].total+=count;byUID[uid].uploads.add(up);byUID[uid].nome=nome;});
+  const allP=Object.values(byUID).map(p=>({...p,imports:p.uploads.size})).sort((a,b)=>b.total-a.total);
+  const totF=allP.reduce((s,p)=>s+p.total,0);
+  const topR=[...allP].sort((a,b)=>b.imports-a.imports)[0],topF=allP[0];
   const datas=[...new Set(histPromData.rows.map(r=>String(r[1])))].sort();
-  document.getElementById('hp-total-proms').textContent=allProms.length.toLocaleString('pt-BR');
+  document.getElementById('hp-total-proms').textContent=allP.length.toLocaleString('pt-BR');
   document.getElementById('hp-periodo').textContent=datas.length?`${isoToDM(datas[0])} → ${isoToDM(datas[datas.length-1])}`:'—';
-  document.getElementById('hp-total-fotos').textContent=totalFotos.toLocaleString('pt-BR');
-  document.getElementById('hp-top-imports').textContent=topRec?`${topRec.imports}x`:'—';
-  document.getElementById('hp-top-nome').textContent=topRec?topRec.nome:'—';
-  document.getElementById('hp-top-fotos').textContent=topFotos?topFotos.total.toLocaleString('pt-BR'):'—';
-  document.getElementById('hp-top-fotos-nome').textContent=topFotos?topFotos.nome:'—';
-  window._allProms=allProms;
-  updatePromChart();
+  document.getElementById('hp-total-fotos').textContent=totF.toLocaleString('pt-BR');
+  document.getElementById('hp-top-imports').textContent=topR?`${topR.imports}x`:'—';
+  document.getElementById('hp-top-nome').textContent=topR?topR.nome:'—';
+  document.getElementById('hp-top-fotos').textContent=topF?topF.total.toLocaleString('pt-BR'):'—';
+  document.getElementById('hp-top-fotos-nome').textContent=topF?topF.nome:'—';
+  window._allProms=allP;updatePromChart();
   injectTableCard('card-tbl-hist-proms','p-hist-proms','Detalhamento por Promotor',
-    '<tr><th>#</th><th>Promotor</th><th class="num-right">Total Acumulado</th><th class="num-right">Nº Imports</th><th class="num-right">Média / Import</th></tr>',
-    allProms.map((p,i)=>{
-      const color=promColor(p.imports).replace(/[\d.]+\)$/,'1)');
-      return`<tr><td class="rank-num">${i+1}</td><td>${p.nome}</td><td class="num-right"><strong>${p.total.toLocaleString('pt-BR')}</strong></td><td class="num-right"><span style="color:${color};font-weight:600">${p.imports}x</span></td><td class="num-right">${(p.total/p.imports).toFixed(1)}</td></tr>`;
-    }).join(''));
+    '<tr><th>#</th><th>Promotor</th><th class="num-right">Total</th><th class="num-right">Imports</th><th class="num-right">Média/Import</th></tr>',
+    allP.map((p,i)=>{const color=promColor(p.imports).replace(/[\d.]+\)$/,'1)');return`<tr><td class="rank-num">${i+1}</td><td>${p.nome}</td><td class="num-right"><strong>${p.total.toLocaleString('pt-BR')}</strong></td><td class="num-right"><span style="color:${color};font-weight:600">${p.imports}x</span></td><td class="num-right">${(p.total/p.imports).toFixed(1)}</td></tr>`;}).join(''));
+}
+function promColor(i){return i>=6?'rgba(239,68,68,.85)':i>=3?'rgba(245,158,11,.85)':'rgba(99,102,241,.8)';}
+function updatePromChart(){
+  const allP=window._allProms;if(!allP)return;
+  const fv=parseInt(document.getElementById('prom-filter').value),vis=allP.slice(0,fv);
+  document.getElementById('wrap-hist-prom').style.height=Math.max(300,vis.length*30)+'px';
+  const nxP={id:'nx',afterDatasetsDraw(chart){const ctx=chart.ctx;ctx.save();ctx.font='11px Segoe UI,system-ui,sans-serif';ctx.fillStyle='#94a3b8';chart.getDatasetMeta(0).data.forEach((bar,i)=>{ctx.fillText(`${vis[i].imports}x`,bar.x+6,bar.y+4)});ctx.restore();}};
+  mkChart('chart-hist-prom',{type:'bar',data:{labels:vis.map(p=>p.nome),datasets:[{label:'Total',data:vis.map(p=>p.total),backgroundColor:vis.map(p=>promColor(p.imports)),borderColor:vis.map(p=>promColor(p.imports).replace('.85','1').replace('.8','1')),borderWidth:1,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,layout:{padding:{right:36}},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1d2e',borderColor:'#2d3148',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#94a3b8',padding:10,callbacks:{label:item=>{const p=vis[item.dataIndex];return[` Total: ${p.total}`,` ${p.imports} import(s)`];}}}},scales:{x:{grid:{color:'rgba(45,49,72,.4)'},ticks:{color:'#94a3b8',font:{size:11}},beginAtZero:true},y:{grid:{color:'rgba(45,49,72,.15)'},ticks:{color:'#e2e8f0',font:{size:11}}}}},plugins:[nxP]});
 }
 
-function promColor(i){ return i>=6?'rgba(239,68,68,.85)':i>=3?'rgba(245,158,11,.85)':'rgba(99,102,241,.8)'; }
-
-function updatePromChart() {
-  const allProms=window._allProms; if (!allProms) return;
-  const filterVal=parseInt(document.getElementById('prom-filter').value);
-  const visible=allProms.slice(0,filterVal);
-  document.getElementById('wrap-hist-prom').style.height=Math.max(300,visible.length*30)+'px';
-  const nxPlugin={id:'nxLabels',afterDatasetsDraw(chart){
-    const ctx=chart.ctx; ctx.save();
-    ctx.font='11px Segoe UI,system-ui,sans-serif'; ctx.fillStyle='#94a3b8';
-    chart.getDatasetMeta(0).data.forEach((bar,i)=>{ ctx.fillText(`${visible[i].imports}x`,bar.x+6,bar.y+4); });
-    ctx.restore();
-  }};
-  mkChart('chart-hist-prom',{
-    type:'bar',
-    data:{labels:visible.map(p=>p.nome),datasets:[{label:'Total acumulado',data:visible.map(p=>p.total),backgroundColor:visible.map(p=>promColor(p.imports)),borderColor:visible.map(p=>promColor(p.imports).replace('.85','1').replace('.8','1')),borderWidth:1,borderRadius:3}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,layout:{padding:{right:36}},
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1d2e',borderColor:'#2d3148',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#94a3b8',padding:10,callbacks:{label:item=>{const p=visible[item.dataIndex];return[` Total acumulado: ${p.total}`,` Apareceu em: ${p.imports} import(s)`];}}}},
-      scales:{x:{grid:{color:'rgba(45,49,72,.4)'},ticks:{color:'#94a3b8',font:{size:11}},beginAtZero:true},y:{grid:{color:'rgba(45,49,72,.15)'},ticks:{color:'#e2e8f0',font:{size:11}}}}},
-    plugins:[nxPlugin]
-  });
-}
-
-// ── Histórico: Tabela Dinâmica ────────────────────
-function renderHistPivot() {
-  if (!histPivotData?.rows?.length) { showPanel('p-hist-empty'); return; }
+// ── Render Histórico: Tabela Dinâmica ─────────────
+function renderHistPivot(){
+  if(!histPivotData?.rows?.length){showPanel('p-hist-empty');return;}
   showPanel('p-hist-pivot');
-
-  // uploads disponíveis (únicos, ordem cronológica)
-  const uploadsMap = {};
-  histPivotData.rows.forEach(r => {
-    const uid=String(r[0]), date=String(r[1]).slice(0,10);
-    if (!uploadsMap[uid]) uploadsMap[uid]=date;
-  });
-  const uploads = Object.keys(uploadsMap).sort((a,b)=>uploadsMap[a].localeCompare(uploadsMap[b]));
-
-  // import selecionado
-  const sel = document.getElementById('pivot-sel');
-  const selected = sel ? sel.value : uploads[uploads.length-1];
-
-  // filtra linhas do import selecionado
-  const rows = histPivotData.rows.filter(r => String(r[0])===selected);
-
-  // monta matriz promotor × data_tarefa
-  const byUID={}, allDates=new Set();
-  rows.forEach(r => {
-    const uid=String(r[2]), nome=String(r[3]), date=String(r[4]), count=Number(r[5])||0;
-    allDates.add(date);
-    if (!byUID[uid]) byUID[uid]={uid,nome,dates:{},total:0};
-    byUID[uid].dates[date]=(byUID[uid].dates[date]||0)+count;
-    byUID[uid].total+=count; byUID[uid].nome=nome;
-  });
-  const dates=[...allDates].sort();
-  const proms=Object.values(byUID).sort((a,b)=>b.total-a.total);
-  const colTotals={};
-  dates.forEach(d=>{ colTotals[d]=proms.reduce((s,p)=>s+(p.dates[d]||0),0); });
-  const grandTotal=proms.reduce((s,p)=>s+p.total,0);
-
-  const selOpts=uploads.map(u=>`<option value="${u}"${u===selected?' selected':''}>${u} <span style="color:var(--muted)">(${isoToDMY(uploadsMap[u])})</span></option>`).join('');
-  const thDates=dates.map(d=>`<th class="num-right pvt-date">${isoToLabel(d)}</th>`).join('');
-  const bodyRows=proms.map(p=>{
-    const cells=dates.map(d=>{const v=p.dates[d]||0;return`<td class="num-right">${v>0?v:''}</td>`;}).join('');
-    return`<tr><td class="pvt-name" title="${p.nome}">${p.nome}</td>${cells}<td class="num-right"><strong>${p.total}</strong></td></tr>`;
-  }).join('');
-  const totalCells=dates.map(d=>`<td class="num-right">${colTotals[d]||''}</td>`).join('');
-
+  const upMap={};
+  histPivotData.rows.forEach(r=>{const u=String(r[0]),dt=String(r[1]).slice(0,10);if(!upMap[u])upMap[u]=dt;});
+  const uploads=Object.keys(upMap).sort((a,b)=>upMap[a].localeCompare(upMap[b]));
+  const sel=document.getElementById('pivot-sel'),selected=sel?sel.value:uploads[uploads.length-1];
+  const rows=histPivotData.rows.filter(r=>String(r[0])===selected);
+  const byUID={},allDates=new Set();
+  rows.forEach(r=>{const uid=String(r[2]),nome=String(r[3]),date=String(r[4]),count=Number(r[5])||0;allDates.add(date);if(!byUID[uid])byUID[uid]={uid,nome,dates:{},total:0};byUID[uid].dates[date]=(byUID[uid].dates[date]||0)+count;byUID[uid].total+=count;byUID[uid].nome=nome;});
+  const dates=[...allDates].sort(),proms=Object.values(byUID).sort((a,b)=>b.total-a.total);
+  const colT={};dates.forEach(d=>{colT[d]=proms.reduce((s,p)=>s+(p.dates[d]||0),0);});
+  const grand=proms.reduce((s,p)=>s+p.total,0);
+  const selOpts=uploads.map(u=>`<option value="${u}"${u===selected?' selected':''}>${u}</option>`).join('');
+  const thD=dates.map(d=>`<th class="num-right pvt-date">${isoToLabel(d)}</th>`).join('');
+  const bRows=proms.map(p=>`<tr><td class="pvt-name" title="${p.nome}">${p.nome}</td>${dates.map(d=>{const v=p.dates[d]||0;return`<td class="num-right">${v>0?v:''}</td>`;}).join('')}<td class="num-right"><strong>${p.total}</strong></td></tr>`).join('');
+  const tCells=dates.map(d=>`<td class="num-right">${colT[d]||''}</td>`).join('');
   document.getElementById('p-hist-pivot').innerHTML=`
     <div class="chart-card">
       <div class="hist-toolbar">
-        <div class="chart-title" style="margin-bottom:0">Ocorrências por Promotor × Data da Tarefa</div>
-        <div class="filter-group">
-          <span class="filter-label">Importação</span>
-          <select class="filter-select" id="pivot-sel" onchange="renderHistPivot()">${selOpts}</select>
-        </div>
+        <div class="chart-title" style="margin-bottom:0">Promotor × Data da Tarefa</div>
+        <div class="filter-group"><span class="filter-label">Importação</span><select class="filter-select" id="pivot-sel" onchange="renderHistPivot()">${selOpts}</select></div>
       </div>
-      <div style="color:var(--muted);font-size:.78rem;margin-bottom:.85rem">${proms.length} promotores · ${dates.length} datas · ${grandTotal} ocorrências</div>
+      <div style="color:var(--muted);font-size:.78rem;margin-bottom:.85rem">${proms.length} promotores · ${dates.length} datas · ${grand} ocorrências</div>
       <div class="table-wrap"><table class="pivot-table">
-        <thead><tr>
-          <th class="pvt-name-hdr">Rótulos de Linha</th>
-          ${thDates}
-          <th class="num-right pvt-date">Total Geral</th>
-        </tr></thead>
-        <tbody>
-          ${bodyRows}
-          <tr class="pvt-total-row-tr">
-            <td class="pvt-name"><strong>Total Geral</strong></td>
-            ${totalCells}
-            <td class="num-right"><strong>${grandTotal}</strong></td>
-          </tr>
-        </tbody>
+        <thead><tr><th class="pvt-name-hdr">Rótulos de Linha</th>${thD}<th class="num-right pvt-date">Total Geral</th></tr></thead>
+        <tbody>${bRows}<tr class="pvt-total-row-tr"><td class="pvt-name"><strong>Total Geral</strong></td>${tCells}<td class="num-right"><strong>${grand}</strong></td></tr></tbody>
       </table></div>
     </div>`;
 }
 
-// ── Injetor de tabela ─────────────────────────────
-function injectTableCard(id, panelId, title, thead, tbody) {
+// ── Render Histórico: Localização ─────────────────
+function renderHistLocal(){
+  if(!histLocalData?.rows?.length){document.getElementById('p-hist-local').innerHTML=emptyHist();return;}
+  showPanel('p-hist-local');
+  const byUF={},byCidade={};
+  histLocalData.rows.forEach(r=>{const uf=String(r[2]),cidade=String(r[3]),count=Number(r[4])||0;byUF[uf]=(byUF[uf]||0)+count;const k=`${uf}||${cidade}`;byCidade[k]=(byCidade[k]||0)+count;});
+  const ufD=Object.entries(byUF).sort((a,b)=>b[1]-a[1]);
+  const cidD=Object.entries(byCidade).sort((a,b)=>b[1]-a[1]).slice(0,15).map(([k,c])=>{const[uf,cidade]=k.split('||');return{label:`${cidade} (${uf})`,count:c};});
+  document.getElementById('p-hist-local').innerHTML=`
+    <div class="chart-card"><div class="chart-title">Ocorrências Acumuladas por UF</div>${hBar('chart-huf',ufD.map(([u])=>u),ufD.map(([,c])=>c),'rgba(99,102,241,.7)')}</div>
+    <div class="chart-card"><div class="chart-title">Top 15 Cidades — Acumulado</div>${hBar('chart-hcid',cidD.map(c=>c.label),cidD.map(c=>c.count),'rgba(96,165,250,.7)')}</div>`;
+  buildHBar('chart-huf',ufD.map(([u])=>u),ufD.map(([,c])=>c),'rgba(99,102,241,.7)');
+  buildHBar('chart-hcid',cidD.map(c=>c.label),cidD.map(c=>c.count),'rgba(96,165,250,.7)');
+}
+
+// ── Render Histórico: Bandeira/Marca ──────────────
+function renderHistBandeira(){
+  if(!histBanData?.rows?.length){document.getElementById('p-hist-bandeira').innerHTML=emptyHist();return;}
+  showPanel('p-hist-bandeira');
+  const byBan={},byMrc={};
+  histBanData.rows.forEach(r=>{const ban=String(r[2]),mrc=String(r[3]),count=Number(r[4])||0;byBan[ban]=(byBan[ban]||0)+count;byMrc[mrc]=(byMrc[mrc]||0)+count;});
+  const banD=Object.entries(byBan).sort((a,b)=>b[1]-a[1]),mrcD=Object.entries(byMrc).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('p-hist-bandeira').innerHTML=`
+    <div class="chart-card"><div class="chart-title">Por Bandeira — Acumulado</div>${hBar('chart-hban',banD.map(([b])=>b),banD.map(([,c])=>c),'rgba(167,139,250,.7)')}</div>
+    <div class="chart-card"><div class="chart-title">Por Marca — Acumulado</div>${hBar('chart-hmrc',mrcD.map(([m])=>m),mrcD.map(([,c])=>c),'rgba(52,211,153,.7)')}</div>`;
+  buildHBar('chart-hban',banD.map(([b])=>b),banD.map(([,c])=>c),'rgba(167,139,250,.7)');
+  buildHBar('chart-hmrc',mrcD.map(([m])=>m),mrcD.map(([,c])=>c),'rgba(52,211,153,.7)');
+}
+
+// ── Render Histórico: App & Android ───────────────
+function renderHistVersao(){
+  if(!histVerData?.rows?.length){document.getElementById('p-hist-versao').innerHTML=emptyHist();return;}
+  showPanel('p-hist-versao');
+  const byApp={},byAnd={};
+  histVerData.rows.forEach(r=>{const app=String(r[2]),and=String(r[3]),count=Number(r[4])||0;byApp[app]=(byApp[app]||0)+count;byAnd[and]=(byAnd[and]||0)+count;});
+  const appD=Object.entries(byApp).sort((a,b)=>b[1]-a[1]),andD=Object.entries(byAnd).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('p-hist-versao').innerHTML=`
+    <div class="chart-card"><div class="chart-title">Por Versão do App — Acumulado</div>${hBar('chart-happ',appD.map(([v])=>v),appD.map(([,c])=>c),'rgba(96,165,250,.7)')}</div>
+    <div class="chart-card"><div class="chart-title">Por Versão do Android — Acumulado</div>${hBar('chart-hand',andD.map(([v])=>v),andD.map(([,c])=>c),'rgba(245,158,11,.7)')}</div>`;
+  buildHBar('chart-happ',appD.map(([v])=>v),appD.map(([,c])=>c),'rgba(96,165,250,.7)');
+  buildHBar('chart-hand',andD.map(([v])=>v),andD.map(([,c])=>c),'rgba(245,158,11,.7)');
+}
+
+function emptyHist(){return`<div class="empty-state"><div class="e-icon">📊</div><h3>Sem dados ainda</h3><p>Faça um upload para popular este histórico.</p></div>`;}
+
+// ── Injetor genérico de tabela ────────────────────
+function injectTableCard(id,panelId,title,thead,tbody){
   let card=document.getElementById(id);
-  if (!card) { card=document.createElement('div'); card.id=id; card.className='chart-card'; document.getElementById(panelId).appendChild(card); }
+  if(!card){card=document.createElement('div');card.id=id;card.className='chart-card';document.getElementById(panelId).appendChild(card);}
   card.innerHTML=`<div class="chart-title">${title}</div><div class="table-wrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
 }
 
 // ── Navigation ────────────────────────────────────
-function navigate(p, s) {
-  if (p) { nav.p=p; nav.s=p==='vg'?'overview':'data'; }
-  if (s) nav.s=s;
+const DYN_VG=['local','pdv','bandeira','appandroid','bateria'];
+function navigate(p,s){
+  if(p){nav.p=p;nav.s=p==='vg'?'overview':'data';}
+  if(s)nav.s=s;
   document.querySelectorAll('#nav-primary .nav-tab').forEach(b=>b.classList.toggle('active',b.dataset.p===nav.p));
   const tabs=nav.p==='vg'?VG_TABS:HIST_TABS;
   const sec=document.getElementById('nav-secondary');
   sec.innerHTML=tabs.map(t=>`<button class="nav-tab${t.k===nav.s?' active':''}" data-s="${t.k}">${t.l}</button>`).join('');
   sec.querySelectorAll('[data-s]').forEach(b=>b.addEventListener('click',()=>navigate(null,b.dataset.s)));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  if (nav.p==='hist') {
-    if (nav.s==='data')  renderHistData();
-    else if (nav.s==='proms') renderHistProms();
-    else if (nav.s==='pivot') renderHistPivot();
+  if(nav.p==='hist'){
+    if(nav.s==='data')renderHistData();
+    else if(nav.s==='proms')renderHistProms();
+    else if(nav.s==='pivot')renderHistPivot();
+    else if(nav.s==='local')renderHistLocal();
+    else if(nav.s==='bandeira')renderHistBandeira();
+    else if(nav.s==='versao')renderHistVersao();
   } else {
-    document.getElementById(cur?`p-vg-${nav.s}`:'p-vg-empty').classList.add('active');
+    if(!cur){showPanel('p-vg-empty');}
+    else{showPanel(`p-vg-${nav.s}`);if(DYN_VG.includes(nav.s))renderVGPanel(nav.s,cur);}
   }
 }
-
-function showPanel(id){ document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function showPanel(id){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');}
 document.querySelectorAll('#nav-primary .nav-tab').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.p)));
 
 // ── API ───────────────────────────────────────────
-async function fetchHistory() {
-  if (!SCRIPT_URL) return null;
-  try { return await (await fetch(SCRIPT_URL+'?t='+Date.now())).json(); } catch(e){ return null; }
+async function fetchH(sheet){
+  if(!SCRIPT_URL)return null;
+  try{return await(await fetch(SCRIPT_URL+'?'+(sheet?`sheet=${sheet}&`:'')+'t='+Date.now())).json();}catch{return null;}
 }
-async function fetchPromHistory() {
-  if (!SCRIPT_URL) return null;
-  try { return await (await fetch(SCRIPT_URL+'?sheet=promotores&t='+Date.now())).json(); } catch(e){ return null; }
-}
-async function fetchPivotHistory() {
-  if (!SCRIPT_URL) return null;
-  try { return await (await fetch(SCRIPT_URL+'?sheet=pivot&t='+Date.now())).json(); } catch(e){ return null; }
-}
-async function postHistory(filename, byDay, promotores, pivotRows) {
-  if (!SCRIPT_URL) return;
-  try {
-    await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({filename,byDay,promotores,pivotRows})});
+async function postHistory(filename,d){
+  if(!SCRIPT_URL)return;
+  try{
+    await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({
+      filename,byDay:d.byDay,promotores:d.promotores,pivotRows:d.pivotRows,
+      localRows:d.localRows,banRows:d.banRows,verRows:d.verRows
+    })});
     toast('Histórico salvo ✓','ok');
-  } catch(e){ toast('Erro ao salvar histórico','err'); console.error(e); }
+  }catch(e){toast('Erro ao salvar','err');console.error(e);}
 }
 
 // ── Helpers ───────────────────────────────────────
-function mkChart(id,cfg){
-  if(charts[id])charts[id].destroy();
-  const el=document.getElementById(id); if(!el)return;
-  charts[id]=new Chart(el.getContext('2d'),cfg);
-}
-function baseOpts(){
-  return{responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1d2e',borderColor:'#2d3148',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#94a3b8',padding:10}},
-    scales:{x:{grid:{color:'rgba(45,49,72,.4)'},ticks:{color:'#94a3b8',font:{size:11}}},y:{grid:{color:'rgba(45,49,72,.4)'},ticks:{color:'#94a3b8',font:{size:11}}}}};
-}
+function mkChart(id,cfg){if(charts[id])charts[id].destroy();const el=document.getElementById(id);if(!el)return;charts[id]=new Chart(el.getContext('2d'),cfg);}
+function baseOpts(){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1d2e',borderColor:'#2d3148',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#94a3b8',padding:10}},scales:{x:{grid:{color:'rgba(45,49,72,.4)'},ticks:{color:'#94a3b8',font:{size:11}}},y:{grid:{color:'rgba(45,49,72,.4)'},ticks:{color:'#94a3b8',font:{size:11}}}}};}
 function showOverlay(m){document.getElementById('overlay-msg').textContent=m;document.getElementById('overlay').classList.add('show')}
 function hideOverlay(){document.getElementById('overlay').classList.remove('show')}
 function setMsg(m){document.getElementById('overlay-msg').textContent=m}
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 let toastTimer;
-function toast(msg,type=''){
-  const el=document.getElementById('toast');
-  el.textContent=msg; el.className='show '+type;
-  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.className='',3000);
-}
+function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='show '+type;clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.className='',3000);}
 </script>
 </body>
 </html>
