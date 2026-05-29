@@ -695,9 +695,9 @@ function renderHistVersao(){
 function renderHistPerdas() {
   const panel = document.getElementById('p-hist-perdas');
   if (!histData?.rows?.length) { panel.innerHTML = emptyHist(); return; }
+  const dh = (histData.headers||[]).slice(1).map(String).filter(d => d && /^\d{4}-\d{2}-\d{2}$/.test(d));
+  if (!dh.length) { panel.innerHTML = emptyHist(); showPanel('p-hist-perdas'); return; }
   showPanel('p-hist-perdas');
-
-  const dh = histData.headers.slice(1).map(String);
   // T_max = última data com dado na importação mais recente
   const latestRow = histData.rows[histData.rows.length - 1];
   let tMax = dh[0];
@@ -795,6 +795,7 @@ function navigate(p,s){
     else if(nav.s==='local')renderHistLocal();
     else if(nav.s==='bandeira')renderHistBandeira();
     else if(nav.s==='versao')renderHistVersao();
+    else if(nav.s==='perdas')renderHistPerdas();
   } else {
     if(!cur){showPanel('p-vg-empty');}
     else{showPanel(`p-vg-${nav.s}`);if(DYN_VG.includes(nav.s))renderVGPanel(nav.s,cur);}
