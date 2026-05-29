@@ -235,6 +235,8 @@ tr:hover td{background:rgba(99,102,241,.04)}
     <div class="panel" id="p-hist-bandeira"></div>
     <div class="panel" id="p-hist-versao"></div>
 
+    <div class="panel" id="p-hist-perdas"></div>
+
     <div class="panel" id="p-hist-empty">
       <div class="empty-state"><div class="e-icon">📈</div><h3>Histórico vazio</h3><p>Faça o primeiro upload para começar a construir o histórico.</p><button class="btn-primary" onclick="document.getElementById('fi').click()">Fazer Upload</button></div>
     </div>
@@ -264,7 +266,7 @@ const VG_TABS = [
 const HIST_TABS = [
   {k:'data',l:'📈 Por Data'},{k:'proms',l:'👥 Promotores Recorrentes'},
   {k:'pivot',l:'🔢 Tabela Dinâmica'},{k:'local',l:'🗺️ Localização'},
-  {k:'bandeira',l:'🏷️ Bandeira/Marca'},{k:'versao',l:'📱 App & Android'}
+  {k:'bandeira',l:'🏷️ Bandeira/Marca'},  {k:'versao',l:'📱 App & Android'},{k:'perdas',l:'📉 Análise de Perdas'}
 ];
 
 // ── Init ──────────────────────────────────────────
@@ -506,7 +508,7 @@ function renderVGBateria(d){
 // ── Render Histórico: Por Data ────────────────────
 function renderHistData(){
   if(!histData?.rows?.length){showPanel('p-hist-empty');return;}
-  showPanel('p-hist-data');buildHistFilter();updateHistChart();
+  showPanel('p-hist-data');injectHistKPIs(calcHistKPIs());buildHistFilter();updateHistChart();
   injectTableCard('card-tbl-hist-data','p-hist-data','Uploads Registrados',
     '<tr><th>Arquivo</th><th>Data Upload</th><th class="num-right">Total</th><th class="num-right">Dias</th><th class="num-right">Promotores</th><th class="num-right">Pico</th></tr>',
     buildUploadsRows());
@@ -523,6 +525,53 @@ function buildUploadsRows(){
     return`<tr><td class="tbl-file" title="${fn}">${fn}</td><td style="color:var(--muted);font-size:.8rem">${upDates[fn]?isoToDMY(upDates[fn]):'—'}</td><td class="num-right"><strong>${total.toLocaleString('pt-BR')}</strong></td><td class="num-right">${dias}</td><td class="num-right">${upProms[fn]?upProms[fn].size:'—'}</td><td class="num-right">${pico} <span style="color:var(--muted);font-size:.72rem">(${picoDia})</span></td></tr>`;
   }).join('');
 }
+function calcHistKPIs() {
+  if (!histData?.rows?.length) return null;
+  const numCols = histData.headers.length - 1;
+  let total = 0, pendentes = 0, oldest = null;
+  for (let c = 0; c < numCols; c++) {
+    let lastVal = 0;
+    histData.rows.forEach(row => {
+      const v = row[c + 1];
+      if (v !== '' && v !== null && v !== undefined) lastVal = +v || 0;
+    });
+    if (lastVal > 0) {
+      total += lastVal;
+      pendentes++;
+      const d = histData.headers[c + 1];
+      if (!oldest || d < oldest) oldest = d;
+    }
+  }
+  return { total, pendentes, oldest };
+}
+
+function injectHistKPIs(k) {
+  let card = document.getElementById('card-hist-kpis');
+  if (!card) {
+    card = document.createElement('div');
+    card.id = 'card-hist-kpis';
+    const panel = document.getElementById('p-hist-data');
+    panel.insertBefore(card, panel.firstChild);
+  }
+  card.innerHTML = `<div class="kpi-grid" style="margin-bottom:1.5rem">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Pendente Acumulado</div>
+      <div class="kpi-value c-danger">${k.total.toLocaleString('pt-BR')}</div>
+      <div class="kpi-sub">fotos nunca sincronizadas (todos os períodos)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Dias com Pendência</div>
+      <div class="kpi-value c-alert">${k.pendentes}</div>
+      <div class="kpi-sub">dias que ainda não zeraram</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Pendência mais Antiga</div>
+      <div class="kpi-value c-primary">${k.oldest ? isoToDM(k.oldest) : '—'}</div>
+      <div class="kpi-sub">data mais velha ainda não resolvida</div>
+    </div>
+  </div>`;
+}
+
 function buildHistFilter(){
   const n=histData.rows.length,sel=document.getElementById('hist-filter');
   sel.innerHTML='';[3,5,10,20].filter(v=>v<n).forEach(v=>{sel.innerHTML+=`<option value="${v}">últimas ${v}</option>`;});
@@ -641,6 +690,82 @@ function renderHistVersao(){
     <div class="chart-card"><div class="chart-title">Por Versão do Android — Acumulado</div>${hBar('chart-hand',andD.map(([v])=>v),andD.map(([,c])=>c),'rgba(245,158,11,.7)')}</div>`;
   buildHBar('chart-happ',appD.map(([v])=>v),appD.map(([,c])=>c),'rgba(96,165,250,.7)');
   buildHBar('chart-hand',andD.map(([v])=>v),andD.map(([,c])=>c),'rgba(245,158,11,.7)');
+}
+
+function renderHistPerdas() {
+  const panel = document.getElementById('p-hist-perdas');
+  if (!histData?.rows?.length) { panel.innerHTML = emptyHist(); return; }
+  showPanel('p-hist-perdas');
+
+  const dh = histData.headers.slice(1).map(String);
+  // T_max = última data com dado na importação mais recente
+  const latestRow = histData.rows[histData.rows.length - 1];
+  let tMax = dh[0];
+  dh.forEach((d, i) => { const v = latestRow[i + 1]; if ((v !== '' && v !== null && v !== undefined) && d > tMax) tMax = d; });
+  const cutoffD = new Date(tMax); cutoffD.setDate(cutoffD.getDate() - 6);
+  const cutoff = cutoffD.toISOString().slice(0, 10);
+
+  // Para cada data: valor mais recente conhecido
+  const items = dh.map(d => {
+    const ci = histData.headers.indexOf(d);
+    let last = 0;
+    histData.rows.forEach(row => { const v = row[ci]; if (v !== '' && v !== null && v !== undefined) last = +v || 0; });
+    return { date: d, count: last, perm: d < cutoff };
+  }).filter(x => x.count > 0 || !x.perm); // permanentes só se pendentes; em jogo sempre
+
+  const permTotal = items.filter(x => x.perm).reduce((s, x) => s + x.count, 0);
+  const playTotal = items.filter(x => !x.perm).reduce((s, x) => s + x.count, 0);
+  const total = permTotal + playTotal;
+  const pctPerm = total ? ((permTotal / total) * 100).toFixed(1) : '0';
+
+  panel.innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Total de Fotos Perdidas</div><div class="kpi-value c-danger">${total.toLocaleString('pt-BR')}</div><div class="kpi-sub">permanentes + em jogo</div></div>
+      <div class="kpi-card"><div class="kpi-label">Permanentemente Perdidas</div><div class="kpi-value c-danger">${permTotal.toLocaleString('pt-BR')}</div><div class="kpi-sub">${pctPerm}% do total — irrecuperáveis</div></div>
+      <div class="kpi-card"><div class="kpi-label">Ainda em Jogo</div><div class="kpi-value c-alert">${playTotal.toLocaleString('pt-BR')}</div><div class="kpi-sub">podem ainda sincronizar</div></div>
+      <div class="kpi-card"><div class="kpi-label">Janela Ativa</div><div class="kpi-value c-info" style="font-size:1.4rem">${isoToDM(cutoff)} → ${isoToDM(tMax)}</div><div class="kpi-sub">7 dias ainda em jogo</div></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Fotos Pendentes por Data — Permanentes vs Em Jogo</div>
+      <div style="position:relative;height:320px"><canvas id="chart-perdas"></canvas></div>
+      <p class="chart-hint">
+        <span style="color:var(--danger)">■</span> <strong>Vermelho</strong> = permanentemente perdidas — fora da janela de 7 dias, o app já deletou do dispositivo &nbsp;·&nbsp;
+        <span style="color:var(--alert)">■</span> <strong>Amarelo</strong> = ainda em jogo — dentro da janela, o app segue tentando sincronizar
+      </p>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Detalhamento por Data</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Data</th><th>Status</th><th class="num-right">Fotos Pendentes</th></tr></thead>
+        <tbody>${items.filter(x => x.count > 0).sort((a, b) => a.date.localeCompare(b.date)).map(x =>
+          `<tr><td>${isoToDM(x.date)}</td>
+           <td><span style="color:${x.perm ? 'var(--danger)' : 'var(--alert)'};font-size:.78rem;font-weight:600">${x.perm ? '⛔ Permanente' : '⏳ Em Jogo'}</span></td>
+           <td class="num-right"><strong>${x.count.toLocaleString('pt-BR')}</strong></td></tr>`
+        ).join('')}</tbody>
+      </table></div>
+    </div>`;
+
+  mkChart('chart-perdas', {
+    type: 'bar',
+    data: {
+      labels: items.map(x => isoToDM(x.date)),
+      datasets: [
+        { label: 'Permanentemente Perdidas', data: items.map(x => x.perm ? x.count : 0), backgroundColor: 'rgba(239,68,68,.8)', borderColor: '#ef4444', borderWidth: 1, borderRadius: 3 },
+        { label: 'Em Jogo', data: items.map(x => !x.perm ? x.count : 0), backgroundColor: 'rgba(245,158,11,.8)', borderColor: '#f59e0b', borderWidth: 1, borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#94a3b8', font: { size: 11 }, padding: 16, boxWidth: 12 } },
+        tooltip: { backgroundColor: '#1a1d2e', borderColor: '#2d3148', borderWidth: 1, titleColor: '#e2e8f0', bodyColor: '#94a3b8', padding: 10 }
+      },
+      scales: {
+        x: { stacked: true, grid: { color: 'rgba(45,49,72,.4)' }, ticks: { color: '#94a3b8', font: { size: 11 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 20 } },
+        y: { stacked: true, grid: { color: 'rgba(45,49,72,.4)' }, ticks: { color: '#94a3b8', font: { size: 11 } }, beginAtZero: true }
+      }
+    }
+  });
 }
 
 function emptyHist(){return`<div class="empty-state"><div class="e-icon">📊</div><h3>Sem dados ainda</h3><p>Faça um upload para popular este histórico.</p></div>`;}
