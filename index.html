@@ -591,7 +591,13 @@ function renderHistProms(){
   if(!histPromData?.rows?.length){showPanel('p-hist-empty');return;}
   showPanel('p-hist-proms');
   const byUID={};
-  histPromData.rows.forEach(row=>{const uid=String(row[2]),nome=String(row[3]),count=Number(row[4])||0,up=String(row[0]);if(!byUID[uid])byUID[uid]={uid,nome,total:0,uploads:new Set()};byUID[uid].total+=count;byUID[uid].uploads.add(up);byUID[uid].nome=nome;});
+  histPromData.rows.forEach(row=>{
+    const uid=String(row[2]),nome=String(row[3]),count=Number(row[4])||0,up=String(row[0]),dt=String(row[1]).slice(0,10);
+    if(!byUID[uid])byUID[uid]={uid,nome,total:0,uploads:new Set(),first:dt,last:dt};
+    byUID[uid].total+=count;byUID[uid].uploads.add(up);byUID[uid].nome=nome;
+    if(dt<byUID[uid].first)byUID[uid].first=dt;
+    if(dt>byUID[uid].last)byUID[uid].last=dt;
+  });
   const allP=Object.values(byUID).map(p=>({...p,imports:p.uploads.size})).sort((a,b)=>b.total-a.total);
   const totF=allP.reduce((s,p)=>s+p.total,0);
   const topR=[...allP].sort((a,b)=>b.imports-a.imports)[0],topF=allP[0];
@@ -605,8 +611,8 @@ function renderHistProms(){
   document.getElementById('hp-top-fotos-nome').textContent=topF?topF.nome:'—';
   window._allProms=allP;updatePromChart();
   injectTableCard('card-tbl-hist-proms','p-hist-proms','Detalhamento por Promotor',
-    '<tr><th>#</th><th>Promotor</th><th class="num-right">Total</th><th class="num-right">Imports</th><th class="num-right">Média/Import</th></tr>',
-    allP.map((p,i)=>{const color=promColor(p.imports).replace(/[\d.]+\)$/,'1)');return`<tr><td class="rank-num">${i+1}</td><td>${p.nome}</td><td class="num-right"><strong>${p.total.toLocaleString('pt-BR')}</strong></td><td class="num-right"><span style="color:${color};font-weight:600">${p.imports}x</span></td><td class="num-right">${(p.total/p.imports).toFixed(1)}</td></tr>`;}).join(''));
+    '<tr><th>#</th><th>Promotor</th><th class="num-right">Total</th><th class="num-right">Imports</th><th>1ª Ocorrência</th><th>Última Ocorrência</th><th class="num-right">Média / Ocorr.</th></tr>',
+    allP.map((p,i)=>{const color=promColor(p.imports).replace(/[\d.]+\)$/,'1)');return`<tr><td class="rank-num">${i+1}</td><td>${p.nome}</td><td class="num-right"><strong>${p.total.toLocaleString('pt-BR')}</strong></td><td class="num-right"><span style="color:${color};font-weight:600">${p.imports}x</span></td><td>${isoToDM(p.first)}</td><td>${isoToDM(p.last)}</td><td class="num-right">${(p.total/p.imports).toFixed(1)}</td></tr>`;}).join(''));
 }
 function promColor(i){return i>=6?'rgba(239,68,68,.85)':i>=3?'rgba(245,158,11,.85)':'rgba(99,102,241,.8)';}
 function updatePromChart(){
