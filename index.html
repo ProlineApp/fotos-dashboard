@@ -598,7 +598,20 @@ function renderHistProms(){
     if(dt<byUID[uid].first)byUID[uid].first=dt;
     if(dt>byUID[uid].last)byUID[uid].last=dt;
   });
-  const allP=Object.values(byUID).map(p=>({...p,imports:p.uploads.size})).sort((a,b)=>b.total-a.total);
+  // Total CORRETO: usa pivot para evitar dupla contagem de janelas sobrepostas
+  // Para cada (uid × data_tarefa), pega o valor mais recente e soma
+  const pivotTotals={};
+  if(histPivotData?.rows?.length){
+    const latest={};
+    histPivotData.rows.forEach(row=>{
+      const uid=String(row[2]),dataTarefa=String(row[4]),di=String(row[1]).slice(0,10),cnt=Number(row[5])||0;
+      const k=`${uid}|${dataTarefa}`;
+      if(!latest[k]||di>latest[k].di)latest[k]={cnt,di};
+    });
+    Object.entries(latest).forEach(([k,d])=>{const uid=k.split('|')[0];pivotTotals[uid]=(pivotTotals[uid]||0)+d.cnt;});
+  }
+  const usePivot=Object.keys(pivotTotals).length>0;
+  const allP=Object.values(byUID).map(p=>({...p,imports:p.uploads.size,total:usePivot?(pivotTotals[p.uid]||0):p.total})).sort((a,b)=>b.total-a.total);
   const totF=allP.reduce((s,p)=>s+p.total,0);
   const topR=[...allP].sort((a,b)=>b.imports-a.imports)[0],topF=allP[0];
   const datas=[...new Set(histPromData.rows.map(r=>String(r[1])))].sort();
